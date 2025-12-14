@@ -188,7 +188,7 @@ export default function RideDetailsPage() {
   const canBook = !isDriver && !existingBooking && ride.available_seats > 0 && ride.status === 'active' && !isPastRide
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-40">
       {/* Header */}
       <div className="bg-avocado-600 pt-12 pb-20 px-4">
         <div className="max-w-lg mx-auto">
@@ -413,9 +413,9 @@ export default function RideDetailsPage() {
         </div>
       </div>
 
-      {/* Book Button */}
+      {/* Book Button - positioned above BottomNav */}
       {canBook && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+        <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-40">
           <div className="max-w-lg mx-auto">
             <Button className="w-full" size="lg" onClick={() => setShowBookingDialog(true)}>
               Book Seat - {formatCurrency(bookingFee)} to reserve

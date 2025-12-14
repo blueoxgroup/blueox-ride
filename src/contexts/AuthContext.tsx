@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string, fullName?: string) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -32,6 +32,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error fetching profile:', error)
+
+      // If profile doesn't exist (trigger may have failed), create it
+      if (error.code === 'PGRST116') {
+        console.log('Profile not found, creating one...')
+        const { data: newProfile, error: createError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: userEmail || '',
+            full_name: fullName || 'User',
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating profile:', createError)
+          return null
+        }
+        return newProfile as User
+      }
       return null
     }
     return data as User
@@ -50,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile)
+        const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+        fetchProfile(session.user.id, session.user.email, fullName).then(setProfile)
       }
       setLoading(false)
     })
@@ -62,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const profileData = await fetchProfile(session.user.id)
+          const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+          const profileData = await fetchProfile(session.user.id, session.user.email, fullName)
           setProfile(profileData)
         } else {
           setProfile(null)
