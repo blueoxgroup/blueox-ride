@@ -17,7 +17,7 @@ interface RideWithDriver extends Ride {
 }
 
 export default function HomePage() {
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
   const [searchOrigin, setSearchOrigin] = useState('')
   const [searchDestination, setSearchDestination] = useState('')
   const [rides, setRides] = useState<RideWithDriver[]>([])
