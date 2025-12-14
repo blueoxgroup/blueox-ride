@@ -1,5 +1,6 @@
 // Blue Ox - Initiate Payment Edge Function
 // This function handles payment initiation with Pandora Mobile Money API
+// Documentation: https://pandorapayments.com/documentation
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -13,6 +14,9 @@ interface PaymentRequest {
   booking_id: string
   phone_number: string
 }
+
+// Pandora API configuration
+const PANDORA_BASE_URL = 'https://api.pandorapayments.com/v1'
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -31,6 +35,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const pandoraApiKey = Deno.env.get('PANDORA_API_KEY')!
+
+    if (!pandoraApiKey) {
+      throw new Error('PANDORA_API_KEY environment variable not configured')
+    }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -53,17 +61,20 @@ serve(async (req) => {
     }
 
     // Validate phone number format (Uganda: +256 or 0 followed by 7 or 9 digits)
-    const phoneRegex = /^(\+256|0)?[7-9]\d{8}$/
-    if (!phoneRegex.test(phone_number.replace(/\s/g, ''))) {
-      throw new Error('Invalid phone number format. Use Uganda format: 07XXXXXXXX or +2567XXXXXXXX')
+    const phoneRegex = /^(\+256|256|0)?[7-9]\d{8}$/
+    const cleanPhone = phone_number.replace(/\s/g, '')
+    if (!phoneRegex.test(cleanPhone)) {
+      throw new Error('Invalid phone number format. Use Uganda format: 07XXXXXXXX or 256XXXXXXXXX')
     }
 
-    // Normalize phone number to +256 format
-    let normalizedPhone = phone_number.replace(/\s/g, '')
-    if (normalizedPhone.startsWith('0')) {
-      normalizedPhone = '+256' + normalizedPhone.substring(1)
-    } else if (!normalizedPhone.startsWith('+')) {
-      normalizedPhone = '+256' + normalizedPhone
+    // Normalize phone number to 256XXXXXXXXX format (Pandora requires this format)
+    let normalizedPhone = cleanPhone
+    if (normalizedPhone.startsWith('+256')) {
+      normalizedPhone = normalizedPhone.substring(1) // Remove the +
+    } else if (normalizedPhone.startsWith('0')) {
+      normalizedPhone = '256' + normalizedPhone.substring(1)
+    } else if (!normalizedPhone.startsWith('256')) {
+      normalizedPhone = '256' + normalizedPhone
     }
 
     // Get booking details
@@ -106,7 +117,7 @@ serve(async (req) => {
     const bookingFee = Math.ceil(booking.ride.price * 0.1 * booking.seats_booked)
 
     // Generate unique payment reference
-    const paymentReference = `BLUEOX-${Date.now()}-${booking_id.substring(0, 8)}`
+    const paymentReference = `BLUEOX${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
     // Create payment record
     const { data: payment, error: paymentError } = await supabaseAdmin
@@ -136,57 +147,80 @@ serve(async (req) => {
         .eq('id', booking_id)
     }
 
-    // Initiate payment with Pandora API
-    // Note: This is a generic implementation - adjust based on actual Pandora API docs
+    // Build callback URL for Pandora webhook
+    const callbackUrl = `${supabaseUrl}/functions/v1/pandora-webhook`
+
+    // Prepare Pandora API request
+    // Documentation: https://pandorapayments.com/documentation
     const pandoraPayload = {
-      api_key: pandoraApiKey,
-      reference: paymentReference,
       amount: bookingFee,
-      currency: 'UGX',
-      phone_number: normalizedPhone,
-      description: `Blue Ox booking fee for ride from ${booking.ride.origin_name} to ${booking.ride.destination_name}`,
-      callback_url: `${supabaseUrl}/functions/v1/pandora-webhook`,
-      metadata: {
-        booking_id: booking_id,
-        payment_id: payment.id,
-        user_id: user.id,
-      }
+      transaction_ref: paymentReference,
+      contact: normalizedPhone,
+      narrative: `Blue Ox ride booking: ${booking.ride.origin_name} to ${booking.ride.destination_name}`,
+      callback_url: callbackUrl,
     }
 
-    console.log('Initiating Pandora payment:', { reference: paymentReference, amount: bookingFee })
+    console.log('Initiating Pandora payment:', {
+      reference: paymentReference,
+      amount: bookingFee,
+      contact: normalizedPhone,
+      callback_url: callbackUrl,
+    })
 
     // Make request to Pandora API
-    // TODO: Replace with actual Pandora API endpoint
-    const pandoraResponse = await fetch('https://api.pandorapayments.com/v1/collections/mobile-money', {
+    const pandoraResponse = await fetch(`${PANDORA_BASE_URL}/transactions/mobile-money`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pandoraApiKey}`,
+        'X-API-Key': pandoraApiKey,
       },
       body: JSON.stringify(pandoraPayload),
     })
 
-    const pandoraResult = await pandoraResponse.json()
+    // Get response text first to handle non-JSON responses
+    const responseText = await pandoraResponse.text()
 
-    if (!pandoraResponse.ok) {
+    let pandoraResult
+    try {
+      pandoraResult = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('Pandora API returned non-JSON response:', responseText.substring(0, 500))
+
       // Update payment status to failed
       await supabaseAdmin
         .from('payments')
         .update({
           status: 'failed',
-          error_message: pandoraResult.message || 'Pandora API error',
+          error_message: 'Payment service unavailable. Please try again.',
         })
         .eq('id', payment.id)
 
-      throw new Error(pandoraResult.message || 'Payment initiation failed')
+      throw new Error('Payment service temporarily unavailable. Please try again.')
     }
 
-    // Update payment with Pandora transaction ID
+    console.log('Pandora API response:', pandoraResult)
+
+    // Check if request was successful
+    if (!pandoraResult.success) {
+      // Update payment status to failed
+      await supabaseAdmin
+        .from('payments')
+        .update({
+          status: 'failed',
+          error_message: pandoraResult.messages?.join(', ') || 'Pandora API error',
+        })
+        .eq('id', payment.id)
+
+      throw new Error(pandoraResult.messages?.join(', ') || 'Payment initiation failed')
+    }
+
+    // Update payment with processing status
     await supabaseAdmin
       .from('payments')
       .update({
         status: 'processing',
-        pandora_transaction_id: pandoraResult.transaction_id,
+        // Store any transaction ID from Pandora if available
+        pandora_transaction_id: pandoraResult.data?.[0]?.transaction_reference || paymentReference,
       })
       .eq('id', payment.id)
 
@@ -198,6 +232,7 @@ serve(async (req) => {
         reference: paymentReference,
         amount: bookingFee,
         phone_number: normalizedPhone,
+        network: pandoraResult.data?.[0]?.network || 'Mobile Money',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

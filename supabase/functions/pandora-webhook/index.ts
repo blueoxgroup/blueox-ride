@@ -1,8 +1,9 @@
 // Blue Ox - Pandora Webhook Handler
-// This function handles payment notifications from Pandora
+// This function handles payment notifications from Pandora Payments
+// Documentation: https://pandorapayments.com/documentation
 //
-// CALLBACK URL: https://zwuoewhxqndmutbfyzka.supabase.co/functions/v1/pandora-webhook
-// Configure this URL in your Pandora dashboard
+// CALLBACK URL: https://[YOUR-PROJECT-REF].supabase.co/functions/v1/pandora-webhook
+// Configure this URL when initiating payments
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -12,19 +13,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Pandora webhook payload format (from documentation)
 interface PandoraWebhookPayload {
-  reference: string
-  transaction_id: string
-  status: 'successful' | 'failed' | 'pending'
-  amount: number
-  currency: string
-  phone_number: string
-  message?: string
-  metadata?: {
-    booking_id?: string
-    payment_id?: string
-    user_id?: string
-  }
+  transaction_reference: string
+  status: 'processing' | 'completed' | 'failed' | 'cancelled' | 'expired'
+  amount: string
+  transaction_charge?: string
+  narrative?: string
+  sub_account?: string
+  transaction_type?: string
+  network?: string
+  completed_on?: string
+  failed_on?: string
+  reason?: string
 }
 
 serve(async (req) => {
@@ -37,48 +38,52 @@ serve(async (req) => {
     // Initialize Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const pandoraWebhookSecret = Deno.env.get('PANDORA_WEBHOOK_SECRET')
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Verify webhook signature if secret is configured
-    // TODO: Implement signature verification based on Pandora's documentation
-    const signature = req.headers.get('X-Pandora-Signature')
-    if (pandoraWebhookSecret && signature) {
-      // Verify signature here
-      // const isValid = verifySignature(await req.clone().text(), signature, pandoraWebhookSecret)
-      // if (!isValid) throw new Error('Invalid webhook signature')
-    }
 
     // Parse webhook payload
     const payload: PandoraWebhookPayload = await req.json()
 
     console.log('Received Pandora webhook:', {
-      reference: payload.reference,
+      transaction_reference: payload.transaction_reference,
       status: payload.status,
       amount: payload.amount,
+      network: payload.network,
     })
 
     // Validate required fields
-    if (!payload.reference || !payload.status) {
-      throw new Error('Missing required fields in webhook payload')
+    if (!payload.transaction_reference || !payload.status) {
+      console.error('Missing required fields in webhook payload:', payload)
+      throw new Error('Missing required fields: transaction_reference and status')
     }
 
-    // Find payment by reference
+    // SECURITY: Verify webhook by checking transaction_reference exists in our records
+    // (As per Pandora documentation: "verify that webhook requests originated from PandoraPay
+    // by checking the transaction reference against your records")
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
       .select('*, booking:bookings(*)')
-      .eq('pandora_reference', payload.reference)
+      .eq('pandora_reference', payload.transaction_reference)
       .single()
 
     if (paymentError || !payment) {
-      console.error('Payment not found for reference:', payload.reference)
-      throw new Error('Payment not found')
+      console.error('Payment not found for reference:', payload.transaction_reference)
+      // Return 200 to prevent Pandora from retrying (unknown reference)
+      return new Response(
+        JSON.stringify({ success: false, message: 'Unknown transaction reference' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
     }
 
-    // Check if payment is already processed
+    console.log('Found payment record:', {
+      payment_id: payment.id,
+      current_status: payment.status,
+      booking_id: payment.booking_id,
+    })
+
+    // Check if payment is already processed (idempotency)
     if (payment.status === 'completed' || payment.status === 'refunded') {
-      console.log('Payment already processed:', payment.id)
+      console.log('Payment already processed, skipping:', payment.id)
       return new Response(
         JSON.stringify({ success: true, message: 'Payment already processed' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -86,13 +91,13 @@ serve(async (req) => {
     }
 
     // Process based on Pandora status
-    if (payload.status === 'successful') {
-      // Update payment status
+    if (payload.status === 'completed') {
+      // Payment successful - update payment and confirm booking
       const { error: updatePaymentError } = await supabaseAdmin
         .from('payments')
         .update({
           status: 'completed',
-          pandora_transaction_id: payload.transaction_id || payment.pandora_transaction_id,
+          pandora_transaction_id: payload.transaction_reference,
         })
         .eq('id', payment.id)
 
@@ -115,15 +120,21 @@ serve(async (req) => {
       console.log('Payment successful, booking confirmed:', {
         payment_id: payment.id,
         booking_id: payment.booking_id,
+        network: payload.network,
       })
 
-    } else if (payload.status === 'failed') {
-      // Update payment status to failed
+    } else if (payload.status === 'failed' || payload.status === 'cancelled' || payload.status === 'expired') {
+      // Payment failed/cancelled/expired - update payment status
+      const errorMessage = payload.reason ||
+        (payload.status === 'cancelled' ? 'Transaction cancelled by user' :
+         payload.status === 'expired' ? 'Transaction expired - user did not complete in time' :
+         'Payment failed')
+
       const { error: updateError } = await supabaseAdmin
         .from('payments')
         .update({
           status: 'failed',
-          error_message: payload.message || 'Payment failed',
+          error_message: errorMessage,
           retry_count: payment.retry_count + 1,
         })
         .eq('id', payment.id)
@@ -132,22 +143,28 @@ serve(async (req) => {
         console.error('Failed to update payment:', updateError)
       }
 
-      console.log('Payment failed:', {
+      console.log('Payment failed/cancelled/expired:', {
         payment_id: payment.id,
-        message: payload.message,
+        status: payload.status,
+        message: errorMessage,
       })
+
+    } else if (payload.status === 'processing') {
+      // Still processing - just log it
+      console.log('Payment still processing:', payment.id)
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Webhook processed' }),
+      JSON.stringify({ success: true, message: 'Webhook processed successfully' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
 
   } catch (error) {
     console.error('Webhook processing error:', error)
+    // Return 200 to prevent retry loops for invalid payloads
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
 })
