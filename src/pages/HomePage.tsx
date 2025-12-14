@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { Ride, User } from '@/types'
+import type { Ride } from '@/types'
 import { Search, MapPin, Calendar, Users, Star, Plus, ArrowRight } from 'lucide-react'
 
 interface RideWithDriver extends Ride {

@@ -69,6 +69,8 @@ export interface Payment {
   pandora_reference: string | null
   pandora_transaction_id: string | null
   phone_number: string
+  error_message: string | null
+  retry_count: number
   created_at: string
   updated_at: string
 }

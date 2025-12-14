@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate, calculateBookingFee } from '@/lib/utils'
 import type { Ride, User, Booking } from '@/types'
-import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, MessageCircle, Clock, Info, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, Star, Phone, MessageCircle, Clock, Info } from 'lucide-react'
 
 interface RideWithDriver extends Ride {
   driver: User

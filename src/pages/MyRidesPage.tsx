@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride, Booking, User } from '@/types'
-import { Calendar, Users, MapPin, Plus, X, Phone, MessageCircle, Star } from 'lucide-react'
+import { Calendar, Users, Plus, X, Phone, MessageCircle } from 'lucide-react'
 
 interface RideWithBookings extends Ride {
   bookings: (Booking & { passenger: User })[]
