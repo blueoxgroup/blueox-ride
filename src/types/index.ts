@@ -41,8 +41,19 @@ export interface Ride {
   distance_km: number | null
   duration_minutes: number | null
   notes: string | null
+  car_photo_id: string | null
+  car_photo?: CarPhoto
   created_at: string
   updated_at: string
+}
+
+export interface CarPhoto {
+  id: string
+  driver_id: string
+  photo_url: string
+  caption: string | null
+  is_primary: boolean
+  created_at: string
 }
 
 export interface Booking {

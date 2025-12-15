@@ -14,10 +14,11 @@ interface RideWithDriver extends Ride {
   driver_avatar: string | null
   driver_rating: number | null
   driver_total_rides: number
+  car_photo_url: string | null
 }
 
 export default function HomePage() {
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const [searchOrigin, setSearchOrigin] = useState('')
   const [searchDestination, setSearchDestination] = useState('')
   const [rides, setRides] = useState<RideWithDriver[]>([])
@@ -83,16 +84,26 @@ export default function HomePage() {
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-avocado-100 text-sm">Hello,</p>
+              <p className="text-avocado-100 text-sm">
+                {user ? 'Hello,' : 'Welcome to'}
+              </p>
               <h1 className="text-xl font-semibold text-white">
-                {profile?.full_name || 'Welcome'}
+                {user ? (profile?.full_name || 'Welcome') : 'Blue Ox'}
               </h1>
             </div>
-            <Link to="/profile">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold">
-                {profile?.full_name?.[0]?.toUpperCase() || '?'}
-              </div>
-            </Link>
+            {user ? (
+              <Link to="/profile">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold">
+                  {profile?.full_name?.[0]?.toUpperCase() || '?'}
+                </div>
+              </Link>
+            ) : (
+              <Link to="/login">
+                <div className="px-4 py-2 rounded-full bg-white/20 text-white text-sm font-medium hover:bg-white/30 transition-colors">
+                  Sign In
+                </div>
+              </Link>
+            )}
           </div>
 
           {/* Search Box */}
@@ -131,7 +142,7 @@ export default function HomePage() {
       <div className="px-4 -mt-4">
         <div className="max-w-lg mx-auto">
           <div className="flex gap-3">
-            <Link to="/rides/create" className="flex-1">
+            <Link to={user ? '/rides/create' : '/login'} state={!user ? { from: '/rides/create' } : undefined} className="flex-1">
               <Card className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center">
@@ -144,7 +155,7 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link to="/my-rides" className="flex-1">
+            <Link to={user ? '/my-rides' : '/login'} state={!user ? { from: '/my-rides' } : undefined} className="flex-1">
               <Card className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center">
@@ -224,6 +235,17 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
     <Link to={`/rides/${ride.id}`}>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4">
+          {/* Car Photo Banner */}
+          {ride.car_photo_url && (
+            <div className="aspect-[3/1] rounded-lg overflow-hidden bg-muted mb-3 -mx-1 -mt-1">
+              <img
+                src={ride.car_photo_url}
+                alt="Driver's car"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">

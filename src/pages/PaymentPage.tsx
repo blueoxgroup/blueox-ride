@@ -35,13 +35,56 @@ export default function PaymentPage() {
     }
   }, [id])
 
-  // Poll for payment status
+  // Real-time subscription for payment status updates
   useEffect(() => {
-    if (payment?.status === 'processing') {
-      const interval = setInterval(checkPaymentStatus, 5000)
-      return () => clearInterval(interval)
+    if (!payment?.id) return
+
+    // Subscribe to payment changes
+    const subscription = supabase
+      .channel(`payment-${payment.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payments',
+          filter: `id=eq.${payment.id}`,
+        },
+        async (payload) => {
+          console.log('Payment update received:', payload.new)
+          const newPayment = payload.new as Payment
+
+          setPayment(newPayment)
+
+          if (newPayment.status === 'completed') {
+            toast({
+              title: 'Payment successful!',
+              description: 'Your booking is confirmed. You can now contact the driver.',
+              variant: 'success',
+            })
+            // Refresh booking status
+            await fetchBooking()
+          } else if (newPayment.status === 'failed') {
+            toast({
+              title: 'Payment failed',
+              description: newPayment.error_message || 'Please try again.',
+              variant: 'destructive',
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    // Also poll as fallback (every 10 seconds)
+    const interval = payment.status === 'processing'
+      ? setInterval(checkPaymentStatus, 10000)
+      : null
+
+    return () => {
+      subscription.unsubscribe()
+      if (interval) clearInterval(interval)
     }
-  }, [payment?.status])
+  }, [payment?.id, payment?.status])
 
   const fetchBooking = async () => {
     setLoading(true)
@@ -100,31 +143,36 @@ export default function PaymentPage() {
     if (!payment) return
 
     setChecking(true)
-    const { data } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', payment.id)
-      .single()
+    try {
+      const { data } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', payment.id)
+        .single()
 
-    if (data) {
-      setPayment(data as Payment)
-      if (data.status === 'completed') {
-        toast({
-          title: 'Payment successful!',
-          description: 'Your booking is confirmed. You can now contact the driver.',
-          variant: 'success',
-        })
-        // Refresh booking status
-        fetchBooking()
-      } else if (data.status === 'failed') {
-        toast({
-          title: 'Payment failed',
-          description: data.error_message || 'Please try again.',
-          variant: 'destructive',
-        })
+      if (data) {
+        setPayment(data as Payment)
+        if (data.status === 'completed') {
+          toast({
+            title: 'Payment successful!',
+            description: 'Your booking is confirmed. You can now contact the driver.',
+            variant: 'success',
+          })
+          // Refresh booking status - await it!
+          await fetchBooking()
+        } else if (data.status === 'failed') {
+          toast({
+            title: 'Payment failed',
+            description: data.error_message || 'Please try again.',
+            variant: 'destructive',
+          })
+        }
       }
+    } catch (err) {
+      console.error('Error checking payment status:', err)
+    } finally {
+      setChecking(false)
     }
-    setChecking(false)
   }
 
   const initiatePayment = async () => {

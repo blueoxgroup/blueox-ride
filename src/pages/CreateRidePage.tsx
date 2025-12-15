@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { PlaceInput } from '@/components/PlaceInput'
+import { CarPhotoUpload } from '@/components/CarPhotoUpload'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, calculateBookingFee } from '@/lib/utils'
-import { ArrowLeft, Info } from 'lucide-react'
+import { ArrowLeft, Info, Car, Check } from 'lucide-react'
+import type { CarPhoto } from '@/types'
 
 interface LocationData {
   name: string
@@ -30,9 +32,40 @@ export default function CreateRidePage() {
   const [seats, setSeats] = useState('3')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [carPhotos, setCarPhotos] = useState<CarPhoto[]>([])
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
 
   // Check if user has phone number for driver contact
   const hasPhoneNumber = !!profile?.phone_number
+
+  // Fetch existing car photos on mount
+  useEffect(() => {
+    if (user) {
+      fetchCarPhotos()
+    }
+  }, [user])
+
+  const fetchCarPhotos = async () => {
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('car_photos')
+      .select('*')
+      .eq('driver_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching car photos:', error)
+    } else {
+      setCarPhotos(data as CarPhoto[])
+      // Auto-select primary photo if exists
+      const primaryPhoto = data?.find((p: CarPhoto) => p.is_primary)
+      if (primaryPhoto) {
+        setSelectedPhotoId(primaryPhoto.id)
+      }
+    }
+  }
 
   const handleOriginChange = (name: string, lat?: number, lng?: number) => {
     setOrigin({
@@ -125,6 +158,7 @@ export default function CreateRidePage() {
       available_seats: parseInt(seats),
       notes: notes || null,
       status: 'active',
+      car_photo_id: selectedPhotoId,
     }).select().single()
 
     if (error) {
@@ -293,6 +327,77 @@ export default function CreateRidePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+              </div>
+
+              {/* Car Photo */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Car Photo (optional)</Label>
+                  {carPhotos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoUpload(!showPhotoUpload)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {showPhotoUpload ? 'Cancel' : 'Manage Photos'}
+                    </button>
+                  )}
+                </div>
+
+                {showPhotoUpload ? (
+                  <CarPhotoUpload
+                    photos={carPhotos}
+                    onPhotosChange={(photos) => {
+                      setCarPhotos(photos)
+                      // Auto-select new photo if none selected
+                      if (!selectedPhotoId && photos.length > 0) {
+                        setSelectedPhotoId(photos[0].id)
+                      }
+                    }}
+                    maxPhotos={3}
+                  />
+                ) : carPhotos.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoUpload(true)}
+                    className="w-full p-4 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center gap-2 hover:border-muted-foreground/50 transition-colors"
+                  >
+                    <Car className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Add car photos</span>
+                    <span className="text-xs text-muted-foreground">Help passengers identify your car</span>
+                  </button>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {carPhotos.map((photo) => (
+                      <button
+                        key={photo.id}
+                        type="button"
+                        onClick={() => setSelectedPhotoId(selectedPhotoId === photo.id ? null : photo.id)}
+                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                          selectedPhotoId === photo.id
+                            ? 'border-avocado-500 ring-2 ring-avocado-500/20'
+                            : 'border-transparent hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        <img
+                          src={photo.photo_url}
+                          alt="Car"
+                          className="w-full h-full object-cover"
+                        />
+                        {selectedPhotoId === photo.id && (
+                          <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-avocado-500 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {carPhotos.length > 0 && !showPhotoUpload && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedPhotoId ? 'Photo will be shown with your ride' : 'Tap a photo to select it for this ride'}
+                  </p>
+                )}
               </div>
 
               {/* Info */}

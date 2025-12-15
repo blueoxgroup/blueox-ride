@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate, calculateBookingFee } from '@/lib/utils'
-import type { Ride, User, Booking } from '@/types'
-import { ArrowLeft, Calendar, Users, Star, Phone, MessageCircle, Clock, Info } from 'lucide-react'
+import type { Ride, User, Booking, CarPhoto } from '@/types'
+import { ArrowLeft, Calendar, Users, Star, Phone, MessageCircle, Clock, Info, Car } from 'lucide-react'
 
 interface RideWithDriver extends Ride {
   driver: User
+  car_photo?: CarPhoto
 }
 
 export default function RideDetailsPage() {
@@ -48,12 +49,13 @@ export default function RideDetailsPage() {
   const fetchRide = async () => {
     setLoading(true)
 
-    // Fetch ride with driver info
+    // Fetch ride with driver and car photo info
     const { data: rideData, error: rideError } = await supabase
       .from('rides')
       .select(`
         *,
-        driver:users(*)
+        driver:users(*),
+        car_photo:car_photos(*)
       `)
       .eq('id', id)
       .single()
@@ -185,7 +187,9 @@ export default function RideDetailsPage() {
   const cashPayment = (ride.price - bookingFee) * seats
 
   const isPastRide = new Date(ride.departure_time) < new Date()
-  const canBook = !isDriver && !existingBooking && ride.available_seats > 0 && ride.status === 'active' && !isPastRide
+  const rideIsBookable = !existingBooking && ride.available_seats > 0 && ride.status === 'active' && !isPastRide
+  const canBook = user && !isDriver && rideIsBookable
+  const showLoginToBook = !user && rideIsBookable
 
   return (
     <div className="min-h-screen bg-background pb-40">
@@ -248,6 +252,28 @@ export default function RideDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Car Photo Card */}
+          {ride.car_photo && (
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Car className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Driver's Car</span>
+                </div>
+                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={ride.car_photo.photo_url}
+                    alt="Driver's car"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {ride.car_photo.caption && (
+                  <p className="text-sm text-muted-foreground mt-2">{ride.car_photo.caption}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Driver Card */}
           <Card>
@@ -419,6 +445,21 @@ export default function RideDetailsPage() {
           <div className="max-w-lg mx-auto">
             <Button className="w-full" size="lg" onClick={() => setShowBookingDialog(true)}>
               Book Seat - {formatCurrency(bookingFee)} to reserve
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Login to Book Button - for guests */}
+      {showLoginToBook && (
+        <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-40">
+          <div className="max-w-lg mx-auto">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => navigate('/login', { state: { from: `/rides/${id}` } })}
+            >
+              Sign In to Book - {formatCurrency(bookingFee)} to reserve
             </Button>
           </div>
         </div>

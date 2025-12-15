@@ -65,27 +65,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
-        fetchProfile(session.user.id, session.user.email, fullName).then(setProfile)
+    let isMounted = true
+
+    // Timeout to prevent infinite loading (10 seconds max)
+    const loadingTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('Auth loading timeout - forcing completion')
+        setLoading(false)
       }
-      setLoading(false)
-    })
+    }, 10000)
+
+    // Get initial session
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('Session error:', error)
+          if (isMounted) setLoading(false)
+          return
+        }
+
+        if (isMounted) {
+          setSession(session)
+          setUser(session?.user ?? null)
+
+          if (session?.user) {
+            const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+            const profileData = await fetchProfile(session.user.id, session.user.email, fullName)
+            if (isMounted) setProfile(profileData)
+          }
+
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Auth init error:', err)
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    initAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!isMounted) return
+
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
           const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
           const profileData = await fetchProfile(session.user.id, session.user.email, fullName)
-          setProfile(profileData)
+          if (isMounted) setProfile(profileData)
         } else {
           setProfile(null)
         }
@@ -93,7 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      clearTimeout(loadingTimeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email: string, password: string, fullName: string) => {

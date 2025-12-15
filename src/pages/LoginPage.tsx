@@ -16,7 +16,11 @@ export default function LoginPage() {
   const location = useLocation()
   const { toast } = useToast()
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
+  // Handle both string and object formats for redirect URL
+  const locationState = location.state as { from?: string | { pathname: string } } | null
+  const from = typeof locationState?.from === 'string'
+    ? locationState.from
+    : locationState?.from?.pathname || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

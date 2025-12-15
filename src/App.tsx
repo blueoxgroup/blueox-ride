@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { Toaster } from '@/components/ui/toaster'
@@ -24,9 +24,10 @@ const queryClient = new QueryClient({
   },
 })
 
-// Protected route wrapper
+// Protected route wrapper - redirects to login with return URL
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -37,26 +38,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    // Save the attempted URL for redirect after login
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   return <>{children}</>
 }
 
-// Layout with bottom nav
+// Layout with bottom nav - shows for all users, different nav for logged in
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
-
   return (
     <>
       {children}
-      {user && <BottomNav />}
+      <BottomNav />
     </>
   )
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
 
   if (loading) {
     return (
@@ -74,33 +74,16 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        {/* Public routes */}
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/" replace /> : <LoginPage />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/" replace /> : <RegisterPage />}
-        />
+        {/* Auth routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/search"
-          element={
-            <ProtectedRoute>
-              <SearchPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* PUBLIC routes - anyone can browse */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/rides/:id" element={<RideDetailsPage />} />
+
+        {/* PROTECTED routes - require login */}
         <Route
           path="/profile"
           element={
@@ -114,14 +97,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <CreateRidePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/rides/:id"
-          element={
-            <ProtectedRoute>
-              <RideDetailsPage />
             </ProtectedRoute>
           }
         />

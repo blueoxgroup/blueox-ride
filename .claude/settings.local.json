@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix TypeScript errors for Vercel deployment\n\n- Fix NodeJS.Timeout namespace errors by using ReturnType<typeof setTimeout>\n- Remove unused imports across multiple pages (Link, MapPin, Star, etc.)\n- Add missing error_message and retry_count fields to Payment type\n- Remove unused useGooglePlaces function from usePlacesAutocomplete hook\n- Fix unused event parameter in AuthContext with underscore prefix\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:pandorapayments.com)",
+      "WebSearch"
+    ]
+  }
+}
