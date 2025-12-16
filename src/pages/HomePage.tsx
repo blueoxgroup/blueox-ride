@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
-import { Search, MapPin, Calendar, Users, Star, Plus, ArrowRight } from 'lucide-react'
+import { Search, MapPin, Calendar, Users, Star, Plus, ArrowRight, RefreshCw } from 'lucide-react'
 
 interface RideWithDriver extends Ride {
   driver_name: string
@@ -23,53 +23,85 @@ export default function HomePage() {
   const [searchDestination, setSearchDestination] = useState('')
   const [rides, setRides] = useState<RideWithDriver[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchRides = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { data, error: fetchError } = await withTimeout(
+        supabase
+          .from('rides_with_driver')
+          .select('*')
+          .eq('status', 'active')
+          .gt('departure_time', new Date().toISOString())
+          .order('departure_time', { ascending: true })
+          .limit(20),
+        15000
+      )
+
+      if (fetchError) {
+        console.error('Error fetching rides:', fetchError)
+        setError('Failed to load rides. Please try again.')
+      } else {
+        setRides(data as RideWithDriver[])
+      }
+    } catch (err) {
+      if (err instanceof RequestTimeoutError) {
+        console.error('Request timed out')
+        setError('Request timed out. Please check your connection.')
+      } else {
+        console.error('Fetch error:', err)
+        setError('An error occurred. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchRides()
-  }, [])
-
-  const fetchRides = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('rides_with_driver')
-      .select('*')
-      .eq('status', 'active')
-      .gt('departure_time', new Date().toISOString())
-      .order('departure_time', { ascending: true })
-      .limit(20)
-
-    if (error) {
-      console.error('Error fetching rides:', error)
-    } else {
-      setRides(data as RideWithDriver[])
-    }
-    setLoading(false)
-  }
+  }, [fetchRides])
 
   const searchRides = async () => {
     setLoading(true)
-    let query = supabase
-      .from('rides_with_driver')
-      .select('*')
-      .eq('status', 'active')
-      .gt('departure_time', new Date().toISOString())
-      .order('departure_time', { ascending: true })
+    setError(null)
 
-    if (searchOrigin) {
-      query = query.ilike('origin_name', `%${searchOrigin}%`)
-    }
-    if (searchDestination) {
-      query = query.ilike('destination_name', `%${searchDestination}%`)
-    }
+    try {
+      let query = supabase
+        .from('rides_with_driver')
+        .select('*')
+        .eq('status', 'active')
+        .gt('departure_time', new Date().toISOString())
+        .order('departure_time', { ascending: true })
 
-    const { data, error } = await query.limit(50)
+      if (searchOrigin) {
+        query = query.ilike('origin_name', `%${searchOrigin}%`)
+      }
+      if (searchDestination) {
+        query = query.ilike('destination_name', `%${searchDestination}%`)
+      }
 
-    if (error) {
-      console.error('Error searching rides:', error)
-    } else {
-      setRides(data as RideWithDriver[])
+      const { data, error: searchError } = await withTimeout(query.limit(50), 15000)
+
+      if (searchError) {
+        console.error('Error searching rides:', searchError)
+        setError('Search failed. Please try again.')
+      } else {
+        setRides(data as RideWithDriver[])
+      }
+    } catch (err) {
+      if (err instanceof RequestTimeoutError) {
+        console.error('Search timed out')
+        setError('Search timed out. Please try again.')
+      } else {
+        console.error('Search error:', err)
+        setError('An error occurred. Please try again.')
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -192,6 +224,16 @@ export default function HomePage() {
                 </Card>
               ))}
             </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-destructive mb-4">{error}</p>
+                <Button onClick={fetchRides} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
           ) : rides.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">

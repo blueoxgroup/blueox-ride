@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, withTimeout, checkSessionHealth, forceLogout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -31,45 +31,80 @@ export default function MyRidesPage() {
   const [cancelDialog, setCancelDialog] = useState<{ type: 'ride' | 'booking'; id: string } | null>(null)
   const [canceling, setCanceling] = useState(false)
 
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    if (!user?.id) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Check session health first
+      const sessionHealth = await checkSessionHealth()
+      if (!sessionHealth.valid) {
+        console.error('Session invalid:', sessionHealth.error)
+        forceLogout()
+        return
+      }
+
+      // Fetch rides I'm driving with timeout
+      const { data: ridesData, error: ridesError } = await withTimeout(
+        supabase
+          .from('rides')
+          .select(`
+            *,
+            bookings:bookings(*, passenger:users(*))
+          `)
+          .eq('driver_id', user.id)
+          .order('departure_time', { ascending: true }),
+        15000
+      )
+
+      if (ridesError) {
+        console.error('Error fetching rides:', ridesError)
+        setError('Failed to load your rides. Please try again.')
+      } else if (ridesData) {
+        setMyRides(ridesData as RideWithBookings[])
+      }
+
+      // Fetch my bookings with timeout
+      const { data: bookingsData, error: bookingsError } = await withTimeout(
+        supabase
+          .from('bookings')
+          .select(`
+            *,
+            ride:rides(*, driver:users(*))
+          `)
+          .eq('passenger_id', user.id)
+          .order('created_at', { ascending: false }),
+        15000
+      )
+
+      if (bookingsError) {
+        console.error('Error fetching bookings:', bookingsError)
+        setError('Failed to load your bookings. Please try again.')
+      } else if (bookingsData) {
+        setMyBookings(bookingsData as BookingWithRide[])
+      }
+    } catch (err) {
+      if (err instanceof RequestTimeoutError) {
+        console.error('Request timed out')
+        setError('Request timed out. Please check your connection and try again.')
+      } else {
+        console.error('Fetch error:', err)
+        setError('An error occurred. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id])
+
   useEffect(() => {
     if (user) {
       fetchData()
     }
-  }, [user])
-
-  const fetchData = async () => {
-    setLoading(true)
-
-    // Fetch rides I'm driving
-    const { data: ridesData } = await supabase
-      .from('rides')
-      .select(`
-        *,
-        bookings:bookings(*, passenger:users(*))
-      `)
-      .eq('driver_id', user?.id)
-      .order('departure_time', { ascending: true })
-
-    if (ridesData) {
-      setMyRides(ridesData as RideWithBookings[])
-    }
-
-    // Fetch my bookings
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        ride:rides(*, driver:users(*))
-      `)
-      .eq('passenger_id', user?.id)
-      .order('created_at', { ascending: false })
-
-    if (bookingsData) {
-      setMyBookings(bookingsData as BookingWithRide[])
-    }
-
-    setLoading(false)
-  }
+  }, [user, fetchData])
 
   const handleCancelRide = async (rideId: string) => {
     setCanceling(true)
@@ -197,6 +232,28 @@ export default function MyRidesPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <div className="bg-avocado-600 pt-12 pb-6 px-4">
+          <div className="max-w-lg mx-auto">
+            <h1 className="text-xl font-semibold text-white">My Rides</h1>
+          </div>
+        </div>
+        <div className="px-4 mt-6">
+          <div className="max-w-lg mx-auto">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-destructive mb-4">{error}</p>
+                <Button onClick={fetchData}>Try Again</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,11 +29,85 @@ export default function PaymentPage() {
   const [initiating, setInitiating] = useState(false)
   const [checking, setChecking] = useState(false)
 
+  const fetchBooking = useCallback(async () => {
+    if (!id) return
+
+    setLoading(true)
+
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('bookings')
+          .select(`
+            *,
+            ride:rides(*)
+          `)
+          .eq('id', id)
+          .single(),
+        15000
+      )
+
+      if (error || !data) {
+        console.error('Fetch booking error:', error)
+        toast({
+          title: 'Booking not found',
+          variant: 'destructive',
+        })
+        navigate('/')
+        return
+      }
+
+      if (data.passenger_id !== user?.id) {
+        toast({
+          title: 'Unauthorized',
+          description: 'This is not your booking.',
+          variant: 'destructive',
+        })
+        navigate('/')
+        return
+      }
+
+      setBooking(data as BookingWithRide)
+
+      // Check for existing payment with timeout
+      const { data: paymentData } = await withTimeout(
+        supabase
+          .from('payments')
+          .select('*')
+          .eq('booking_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(),
+        10000
+      )
+
+      if (paymentData) {
+        setPayment(paymentData as Payment)
+        if (paymentData.phone_number) {
+          setPhoneNumber(paymentData.phone_number)
+        }
+      }
+    } catch (err) {
+      if (err instanceof RequestTimeoutError) {
+        console.error('Fetch booking timed out')
+        toast({
+          title: 'Request timed out',
+          description: 'Please try again.',
+          variant: 'destructive',
+        })
+      } else {
+        console.error('Fetch booking error:', err)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [id, user?.id, navigate, toast])
+
   useEffect(() => {
     if (id) {
       fetchBooking()
     }
-  }, [id])
+  }, [id, fetchBooking])
 
   // Real-time subscription for payment status updates
   useEffect(() => {
@@ -84,71 +158,21 @@ export default function PaymentPage() {
       subscription.unsubscribe()
       if (interval) clearInterval(interval)
     }
-  }, [payment?.id, payment?.status])
-
-  const fetchBooking = async () => {
-    setLoading(true)
-
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        ride:rides(*)
-      `)
-      .eq('id', id)
-      .single()
-
-    if (error || !data) {
-      console.error('Fetch booking error:', error)
-      toast({
-        title: 'Booking not found',
-        variant: 'destructive',
-      })
-      navigate('/')
-      return
-    }
-
-    if (data.passenger_id !== user?.id) {
-      toast({
-        title: 'Unauthorized',
-        description: 'This is not your booking.',
-        variant: 'destructive',
-      })
-      navigate('/')
-      return
-    }
-
-    setBooking(data as BookingWithRide)
-
-    // Check for existing payment
-    const { data: paymentData } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('booking_id', id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (paymentData) {
-      setPayment(paymentData as Payment)
-      if (paymentData.phone_number) {
-        setPhoneNumber(paymentData.phone_number)
-      }
-    }
-
-    setLoading(false)
-  }
+  }, [payment?.id, payment?.status, fetchBooking])
 
   const checkPaymentStatus = async () => {
     if (!payment) return
 
     setChecking(true)
     try {
-      const { data } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('id', payment.id)
-        .single()
+      const { data } = await withTimeout(
+        supabase
+          .from('payments')
+          .select('*')
+          .eq('id', payment.id)
+          .single(),
+        10000
+      )
 
       if (data) {
         setPayment(data as Payment)
@@ -169,7 +193,11 @@ export default function PaymentPage() {
         }
       }
     } catch (err) {
-      console.error('Error checking payment status:', err)
+      if (err instanceof RequestTimeoutError) {
+        console.error('Payment status check timed out')
+      } else {
+        console.error('Error checking payment status:', err)
+      }
     } finally {
       setChecking(false)
     }
