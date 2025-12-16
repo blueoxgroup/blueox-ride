@@ -13,13 +13,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pandora webhook payload format (from documentation)
+// Pandora webhook payload format (actual format from Pandora)
 interface PandoraWebhookPayload {
-  transaction_reference: string
+  transaction_ref: string  // Pandora sends transaction_ref, not transaction_reference
   status: 'processing' | 'completed' | 'failed' | 'cancelled' | 'expired'
+  message?: string
   amount: string
-  transaction_charge?: string
+  contact?: string
   narrative?: string
+  timestamp?: number
+  network_ref?: string
+  signature?: string
+  // Legacy fields (in case they change)
+  transaction_reference?: string
+  transaction_charge?: string
   sub_account?: string
   transaction_type?: string
   network?: string
@@ -44,30 +51,33 @@ serve(async (req) => {
     // Parse webhook payload
     const payload: PandoraWebhookPayload = await req.json()
 
+    // Support both transaction_ref (actual) and transaction_reference (legacy)
+    const transactionRef = payload.transaction_ref || payload.transaction_reference
+
     console.log('Received Pandora webhook:', {
-      transaction_reference: payload.transaction_reference,
+      transaction_ref: transactionRef,
       status: payload.status,
       amount: payload.amount,
-      network: payload.network,
+      message: payload.message,
     })
 
     // Validate required fields
-    if (!payload.transaction_reference || !payload.status) {
+    if (!transactionRef || !payload.status) {
       console.error('Missing required fields in webhook payload:', payload)
-      throw new Error('Missing required fields: transaction_reference and status')
+      throw new Error('Missing required fields: transaction_ref and status')
     }
 
-    // SECURITY: Verify webhook by checking transaction_reference exists in our records
+    // SECURITY: Verify webhook by checking transaction_ref exists in our records
     // (As per Pandora documentation: "verify that webhook requests originated from PandoraPay
     // by checking the transaction reference against your records")
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
       .select('*, booking:bookings(*)')
-      .eq('pandora_reference', payload.transaction_reference)
+      .eq('pandora_reference', transactionRef)
       .single()
 
     if (paymentError || !payment) {
-      console.error('Payment not found for reference:', payload.transaction_reference)
+      console.error('Payment not found for reference:', transactionRef)
       // Return 200 to prevent Pandora from retrying (unknown reference)
       return new Response(
         JSON.stringify({ success: false, message: 'Unknown transaction reference' }),
@@ -97,7 +107,7 @@ serve(async (req) => {
         .from('payments')
         .update({
           status: 'completed',
-          pandora_transaction_id: payload.transaction_reference,
+          pandora_transaction_id: transactionRef,
         })
         .eq('id', payment.id)
 
@@ -125,7 +135,7 @@ serve(async (req) => {
 
     } else if (payload.status === 'failed' || payload.status === 'cancelled' || payload.status === 'expired') {
       // Payment failed/cancelled/expired - update payment status
-      const errorMessage = payload.reason ||
+      const errorMessage = payload.message || payload.reason ||
         (payload.status === 'cancelled' ? 'Transaction cancelled by user' :
          payload.status === 'expired' ? 'Transaction expired - user did not complete in time' :
          'Payment failed')
