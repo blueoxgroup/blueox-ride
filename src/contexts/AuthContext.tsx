@@ -81,15 +81,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Track if a session health check is in progress
   const healthCheckInProgress = useRef(false)
+  const userRef = useRef(user)
 
-  // Periodic session health check
+  // Keep userRef in sync
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
+  // Periodic session health check - no dependencies to avoid loops
   const performHealthCheck = useCallback(async () => {
-    if (healthCheckInProgress.current || !user) return
+    if (healthCheckInProgress.current || !userRef.current) return
 
     healthCheckInProgress.current = true
     try {
       const health = await checkSessionHealth()
-      if (!health.valid && user) {
+      if (!health.valid && userRef.current) {
         console.warn('Session health check failed:', health.error)
         // Only force logout if the error indicates a truly dead session
         if (health.error === 'Session refresh failed' || health.error === 'Session check timed out') {
@@ -101,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       healthCheckInProgress.current = false
     }
-  }, [user])
+  }, []) // Empty deps - uses ref instead
 
   useEffect(() => {
     let isMounted = true
@@ -194,7 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       subscription.unsubscribe()
     }
-  }, [performHealthCheck])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run once on mount - performHealthCheck is stable via ref
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({

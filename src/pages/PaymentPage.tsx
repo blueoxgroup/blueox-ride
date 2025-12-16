@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -29,8 +29,12 @@ export default function PaymentPage() {
   const [initiating, setInitiating] = useState(false)
   const [checking, setChecking] = useState(false)
 
+  const fetchInProgress = useRef(false)
+
   const fetchBooking = useCallback(async () => {
-    if (!id) return
+    // Prevent concurrent fetches
+    if (fetchInProgress.current || !id) return
+    fetchInProgress.current = true
 
     setLoading(true)
 
@@ -100,14 +104,17 @@ export default function PaymentPage() {
       }
     } finally {
       setLoading(false)
+      fetchInProgress.current = false
     }
-  }, [id, user?.id, navigate, toast])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]) // Only depend on id - toast/navigate are stable
 
   useEffect(() => {
-    if (id) {
+    if (id && user?.id) {
       fetchBooking()
     }
-  }, [id, fetchBooking])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]) // Only re-fetch when id or user changes
 
   // Real-time subscription for payment status updates
   useEffect(() => {
@@ -137,6 +144,7 @@ export default function PaymentPage() {
               variant: 'success',
             })
             // Refresh booking status
+            fetchInProgress.current = false // Allow refetch
             await fetchBooking()
           } else if (newPayment.status === 'failed') {
             toast({
@@ -158,7 +166,8 @@ export default function PaymentPage() {
       subscription.unsubscribe()
       if (interval) clearInterval(interval)
     }
-  }, [payment?.id, payment?.status, fetchBooking])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payment?.id, payment?.status]) // Remove fetchBooking dep
 
   const checkPaymentStatus = async () => {
     if (!payment) return

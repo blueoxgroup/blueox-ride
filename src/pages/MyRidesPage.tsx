@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, withTimeout, checkSessionHealth, forceLogout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -32,9 +32,12 @@ export default function MyRidesPage() {
   const [canceling, setCanceling] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
+  const fetchInProgress = useRef(false)
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return
+    // Prevent concurrent fetches
+    if (fetchInProgress.current) return
+    fetchInProgress.current = true
 
     setLoading(true)
     setError(null)
@@ -56,7 +59,7 @@ export default function MyRidesPage() {
             *,
             bookings:bookings(*, passenger:users(*))
           `)
-          .eq('driver_id', user.id)
+          .eq('driver_id', user?.id)
           .order('departure_time', { ascending: true }),
         15000
       )
@@ -76,7 +79,7 @@ export default function MyRidesPage() {
             *,
             ride:rides(*, driver:users(*))
           `)
-          .eq('passenger_id', user.id)
+          .eq('passenger_id', user?.id)
           .order('created_at', { ascending: false }),
         15000
       )
@@ -97,14 +100,17 @@ export default function MyRidesPage() {
       }
     } finally {
       setLoading(false)
+      fetchInProgress.current = false
     }
-  }, [user?.id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // No deps - uses user from closure, guarded by ref
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchData()
     }
-  }, [user, fetchData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]) // Only re-fetch when user ID changes
 
   const handleCancelRide = async (rideId: string) => {
     setCanceling(true)

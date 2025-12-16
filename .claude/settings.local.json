@@ -11,7 +11,10 @@
       "Bash(git commit:*)",
       "Bash(git add:*)",
       "WebFetch(domain:pandorapayments.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx supabase --version)",
+      "Bash(npx supabase functions deploy:*)",
+      "WebFetch(domain:blueoxrides.com)"
     ]
   }
 }

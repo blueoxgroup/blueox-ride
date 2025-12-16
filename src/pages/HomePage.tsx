@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,8 +24,14 @@ export default function HomePage() {
   const [rides, setRides] = useState<RideWithDriver[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const fetchInProgress = useRef(false)
+  const hasFetched = useRef(false)
 
   const fetchRides = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (fetchInProgress.current) return
+    fetchInProgress.current = true
+
     setLoading(true)
     setError(null)
 
@@ -57,14 +63,23 @@ export default function HomePage() {
       }
     } finally {
       setLoading(false)
+      fetchInProgress.current = false
     }
   }, [])
 
   useEffect(() => {
-    fetchRides()
+    // Only fetch once on mount
+    if (!hasFetched.current) {
+      hasFetched.current = true
+      fetchRides()
+    }
   }, [fetchRides])
 
   const searchRides = async () => {
+    // Prevent concurrent searches
+    if (fetchInProgress.current) return
+    fetchInProgress.current = true
+
     setLoading(true)
     setError(null)
 
@@ -101,6 +116,7 @@ export default function HomePage() {
       }
     } finally {
       setLoading(false)
+      fetchInProgress.current = false
     }
   }
 
