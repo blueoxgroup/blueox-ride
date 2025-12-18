@@ -51,7 +51,7 @@ export default function RegisterPage() {
     } else {
       toast({
         title: 'Account created!',
-        description: 'Welcome to Blue Ox. Please check your email to verify your account.',
+        description: 'Welcome to BlueOx Rides! Please check your email to verify your account.',
         variant: 'success',
       })
       navigate('/')
@@ -64,11 +64,13 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-avocado-50 to-white">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-avocado-600 rounded-2xl flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">BO</span>
-          </div>
+          <img
+            src="/assets/logo.png"
+            alt="BlueOx Rides"
+            className="mx-auto mb-2 w-16 h-16 object-contain"
+          />
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Join Blue Ox and start carpooling today</CardDescription>
+          <CardDescription>Join BlueOx Rides and start traveling together</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -50,11 +50,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-avocado-50 to-white">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-avocado-600 rounded-2xl flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">BO</span>
-          </div>
+          <img
+            src="/assets/logo.png"
+            alt="BlueOx Rides"
+            className="mx-auto mb-2 w-16 h-16 object-contain"
+          />
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your Blue Ox account</CardDescription>
+          <CardDescription>Sign in to your BlueOx Rides account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
