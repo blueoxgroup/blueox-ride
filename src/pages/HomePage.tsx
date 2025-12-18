@@ -23,15 +23,11 @@ export default function HomePage() {
   const [searchDestination, setSearchDestination] = useState('')
   const [rides, setRides] = useState<RideWithDriver[]>([])
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const fetchInProgress = useRef(false)
   const hasFetched = useRef(false)
 
   const fetchRides = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (fetchInProgress.current) return
-    fetchInProgress.current = true
-
     setLoading(true)
     setError(null)
 
@@ -63,7 +59,6 @@ export default function HomePage() {
       }
     } finally {
       setLoading(false)
-      fetchInProgress.current = false
     }
   }, [])
 
@@ -76,10 +71,10 @@ export default function HomePage() {
   }, [fetchRides])
 
   const searchRides = async () => {
-    // Prevent concurrent searches
-    if (fetchInProgress.current) return
-    fetchInProgress.current = true
+    // Prevent search if already searching
+    if (searching) return
 
+    setSearching(true)
     setLoading(true)
     setError(null)
 
@@ -116,7 +111,7 @@ export default function HomePage() {
       }
     } finally {
       setLoading(false)
-      fetchInProgress.current = false
+      setSearching(false)
     }
   }
 
@@ -134,9 +129,9 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <img
-                src="/assets/logo.png"
+                src="/assets/logo1.png"
                 alt="BlueOx Rides"
-                className="w-10 h-10 object-contain brightness-0 invert"
+                className="w-10 h-10 object-contain"
               />
               <span className="text-white font-bold text-lg">BlueOx Rides</span>
             </div>
@@ -199,9 +194,18 @@ export default function HomePage() {
                     className="pl-8"
                   />
                 </div>
-                <Button type="submit" className="w-full" size="lg">
-                  <Search className="w-4 h-4 mr-2" />
-                  Find a Ride
+                <Button type="submit" className="w-full" size="lg" disabled={searching}>
+                  {searching ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Find a Ride
+                    </>
+                  )}
                 </Button>
               </form>
             </CardContent>
