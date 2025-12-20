@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/BottomNav'
 
 // Pages
 import HomePage from '@/pages/HomePage'
+import ChurchLandingPage from '@/pages/ChurchLandingPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import ProfilePage from '@/pages/ProfilePage'
@@ -118,6 +119,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Church-specific landing pages - must be after all static routes */}
+        {/* Routes: /watoto, /worshipharvest, /holycity, /miraclecenter, /phaneroo */}
+        <Route path="/:churchSlug" element={<ChurchLandingPage />} />
 
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />

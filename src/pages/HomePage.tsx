@@ -17,7 +17,18 @@ interface RideWithDriver extends Ride {
   car_photo_url: string | null
 }
 
-export default function HomePage() {
+interface HomePageProps {
+  // Optional hero copy customization (for church landing pages)
+  heroHeadline?: string
+  heroSubtext?: string
+  loggedInPrompt?: string
+}
+
+export default function HomePage({
+  heroHeadline = 'Travel together, pay less',
+  heroSubtext = 'Find trusted drivers going your way across Uganda',
+  loggedInPrompt = 'Where are you heading today?',
+}: HomePageProps = {}) {
   const { user, profile } = useAuth()
   const [searchOrigin, setSearchOrigin] = useState('')
   const [searchDestination, setSearchDestination] = useState('')
@@ -158,15 +169,15 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold text-white">
                   {profile?.full_name?.split(' ')[0] || 'Traveler'}
                 </h1>
-                <p className="text-avocado-100 mt-2">Where are you heading today?</p>
+                <p className="text-avocado-100 mt-2">{loggedInPrompt}</p>
               </div>
             ) : (
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">
-                  Travel together, pay less
+                  {heroHeadline}
                 </h1>
                 <p className="text-avocado-100 text-base">
-                  Find trusted drivers going your way across Uganda
+                  {heroSubtext}
                 </p>
               </div>
             )}
