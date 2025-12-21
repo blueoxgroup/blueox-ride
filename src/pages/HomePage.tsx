@@ -134,7 +134,7 @@ export default function HomePage({
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-avocado-600 to-avocado-500 pt-8 pb-10 px-4">
+      <div className="bg-gradient-to-b from-navy-900 to-navy-800 pt-8 pb-10 px-4">
         <div className="max-w-lg mx-auto">
           {/* Header with Logo */}
           <div className="flex items-center justify-between mb-6">
@@ -165,18 +165,18 @@ export default function HomePage({
           <div className="text-center mb-6">
             {user ? (
               <div>
-                <p className="text-avocado-100 text-sm mb-1">Welcome back,</p>
+                <p className="text-coral-100 text-sm mb-1">Welcome back,</p>
                 <h1 className="text-2xl font-bold text-white">
                   {profile?.full_name?.split(' ')[0] || 'Traveler'}
                 </h1>
-                <p className="text-avocado-100 mt-2">{loggedInPrompt}</p>
+                <p className="text-coral-100 mt-2">{loggedInPrompt}</p>
               </div>
             ) : (
               <div>
                 <h1 className="text-2xl font-bold text-white mb-2">
                   {heroHeadline}
                 </h1>
-                <p className="text-avocado-100 text-base">
+                <p className="text-coral-100 text-base">
                   {heroSubtext}
                 </p>
               </div>
@@ -188,7 +188,7 @@ export default function HomePage({
             <CardContent className="p-4">
               <form onSubmit={handleSearch} className="space-y-3">
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-avocado-500" />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-500" />
                   <Input
                     placeholder="Leaving from..."
                     value={searchOrigin}
@@ -226,29 +226,29 @@ export default function HomePage({
 
       {/* Value Props - Only show to non-logged in users */}
       {!user && (
-        <div className="px-4 py-6 bg-avocado-50 border-b">
+        <div className="px-4 py-6 bg-coral-50 border-b">
           <div className="max-w-lg mx-auto">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center mx-auto mb-2">
-                  <Wallet className="w-5 h-5 text-avocado-600" />
+                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
+                  <Wallet className="w-5 h-5 text-coral-500" />
                 </div>
-                <p className="text-xs font-medium text-avocado-800">Save Money</p>
-                <p className="text-xs text-avocado-600">Split travel costs</p>
+                <p className="text-xs font-medium text-navy-900">Save Money</p>
+                <p className="text-xs text-coral-500">Split travel costs</p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center mx-auto mb-2">
-                  <UserCheck className="w-5 h-5 text-avocado-600" />
+                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
+                  <UserCheck className="w-5 h-5 text-coral-500" />
                 </div>
-                <p className="text-xs font-medium text-avocado-800">Verified Users</p>
-                <p className="text-xs text-avocado-600">Trusted community</p>
+                <p className="text-xs font-medium text-navy-900">Verified Users</p>
+                <p className="text-xs text-coral-500">Trusted community</p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center mx-auto mb-2">
-                  <Shield className="w-5 h-5 text-avocado-600" />
+                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
+                  <Shield className="w-5 h-5 text-coral-500" />
                 </div>
-                <p className="text-xs font-medium text-avocado-800">Secure Pay</p>
-                <p className="text-xs text-avocado-600">Mobile Money</p>
+                <p className="text-xs font-medium text-navy-900">Secure Pay</p>
+                <p className="text-xs text-coral-500">Mobile Money</p>
               </div>
             </div>
           </div>
@@ -260,10 +260,10 @@ export default function HomePage({
         <div className="max-w-lg mx-auto">
           <div className="flex gap-3">
             <Link to={user ? '/rides/create' : '/login'} state={!user ? { from: '/rides/create' } : undefined} className="flex-1">
-              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-avocado-200">
+              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-coral-200">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center">
-                    <Plus className="w-5 h-5 text-avocado-600" />
+                  <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center">
+                    <Plus className="w-5 h-5 text-coral-500" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Offer a Ride</p>
@@ -273,10 +273,10 @@ export default function HomePage({
               </Card>
             </Link>
             <Link to={user ? '/my-rides' : '/login'} state={!user ? { from: '/my-rides' } : undefined} className="flex-1">
-              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-avocado-200">
+              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-coral-200">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-avocado-600" />
+                  <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-coral-500" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">My Rides</p>
@@ -342,29 +342,29 @@ export default function HomePage({
       {!user && (
         <div className="px-4 mt-6">
           <div className="max-w-lg mx-auto">
-            <Card className="bg-avocado-50 border-avocado-200">
+            <Card className="bg-coral-50 border-coral-200">
               <CardContent className="p-4">
-                <h3 className="font-semibold text-avocado-800 mb-3">How it works</h3>
+                <h3 className="font-semibold text-navy-900 mb-3">How it works</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-avocado-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
                     <div>
-                      <p className="text-sm font-medium text-avocado-800">Find your ride</p>
-                      <p className="text-xs text-avocado-600">Search for drivers going your way</p>
+                      <p className="text-sm font-medium text-navy-900">Find your ride</p>
+                      <p className="text-xs text-coral-500">Search for drivers going your way</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-avocado-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
                     <div>
-                      <p className="text-sm font-medium text-avocado-800">Book with 10% deposit</p>
-                      <p className="text-xs text-avocado-600">Pay via Mobile Money to secure your seat</p>
+                      <p className="text-sm font-medium text-navy-900">Book with 10% deposit</p>
+                      <p className="text-xs text-coral-500">Pay via Mobile Money to secure your seat</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-avocado-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
                     <div>
-                      <p className="text-sm font-medium text-avocado-800">Travel and pay the rest</p>
-                      <p className="text-xs text-avocado-600">Pay 90% in cash to your driver after the ride</p>
+                      <p className="text-sm font-medium text-navy-900">Travel and pay the rest</p>
+                      <p className="text-xs text-coral-500">Pay 90% in cash to your driver after the ride</p>
                     </div>
                   </div>
                 </div>
@@ -378,10 +378,10 @@ export default function HomePage({
       {user && (
         <div className="px-4 mt-6">
           <div className="max-w-lg mx-auto">
-            <Card className="bg-avocado-50 border-avocado-200">
+            <Card className="bg-coral-50 border-coral-200">
               <CardContent className="p-4">
-                <h3 className="font-medium text-avocado-800 mb-2">Payment reminder</h3>
-                <p className="text-sm text-avocado-700">
+                <h3 className="font-medium text-navy-900 mb-2">Payment reminder</h3>
+                <p className="text-sm text-navy-800">
                   Book with 10% via Mobile Money, pay 90% cash to driver after the ride.
                 </p>
               </CardContent>
@@ -412,7 +412,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-avocado-500" />
+                <div className="w-2 h-2 rounded-full bg-coral-500" />
                 <p className="font-medium text-sm truncate">{ride.origin_name}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -421,7 +421,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
               </div>
             </div>
             <div className="text-right ml-4">
-              <p className="font-bold text-avocado-600">{formatCurrency(ride.price)}</p>
+              <p className="font-bold text-coral-500">{formatCurrency(ride.price)}</p>
               <p className="text-xs text-muted-foreground">per seat</p>
             </div>
           </div>
@@ -440,7 +440,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
           </div>
 
           <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-            <div className="w-8 h-8 rounded-full bg-avocado-100 flex items-center justify-center text-avocado-700 text-xs font-medium">
+            <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">
               {ride.driver_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">

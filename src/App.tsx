@@ -61,14 +61,14 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-avocado-50 to-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-navy-50 to-white">
         <div className="text-center">
           <img
             src="/assets/logo.png"
             alt="BlueOx Rides"
             className="w-20 h-20 object-contain mx-auto mb-4"
           />
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-avocado-600 mx-auto" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500 mx-auto" />
         </div>
       </div>
     )

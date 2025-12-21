@@ -245,7 +245,7 @@ export default function MyRidesPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="bg-avocado-600 pt-12 pb-6 px-4">
+        <div className="bg-navy-900 pt-12 pb-6 px-4">
           <div className="max-w-lg mx-auto">
             <h1 className="text-xl font-semibold text-white">My Rides</h1>
           </div>
@@ -267,7 +267,7 @@ export default function MyRidesPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-avocado-600 pt-12 pb-6 px-4">
+      <div className="bg-navy-900 pt-12 pb-6 px-4">
         <div className="max-w-lg mx-auto">
           <h1 className="text-xl font-semibold text-white">My Rides</h1>
         </div>
@@ -301,7 +301,7 @@ export default function MyRidesPage() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-avocado-500" />
+                            <div className="w-2 h-2 rounded-full bg-coral-500" />
                             <span className="text-sm font-medium">{booking.ride.origin_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export default function MyRidesPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-avocado-100 flex items-center justify-center text-avocado-700 text-xs font-medium">
+                          <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">
                             {booking.ride.driver.full_name[0]}
                           </div>
                           <span className="text-sm">{booking.ride.driver.full_name}</span>
@@ -406,7 +406,7 @@ export default function MyRidesPage() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-avocado-500" />
+                            <div className="w-2 h-2 rounded-full bg-coral-500" />
                             <span className="text-sm font-medium">{ride.origin_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -441,7 +441,7 @@ export default function MyRidesPage() {
                               .map((booking) => (
                                 <div key={booking.id} className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-avocado-100 flex items-center justify-center text-avocado-700 text-xs font-medium">
+                                    <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">
                                       {booking.passenger.full_name[0]}
                                     </div>
                                     <div>

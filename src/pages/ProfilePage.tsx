@@ -139,7 +139,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-b from-avocado-600 to-avocado-500 pt-12 pb-24 px-4">
+      <div className="bg-gradient-to-b from-navy-900 to-navy-800 pt-12 pb-24 px-4">
         <h1 className="text-xl font-semibold text-white text-center">Profile</h1>
       </div>
 
@@ -152,7 +152,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl bg-avocado-100 text-avocado-700">
+                  <AvatarFallback className="text-2xl bg-coral-100 text-navy-800">
                     {getInitials(profile.full_name)}
                   </AvatarFallback>
                 </Avatar>
@@ -188,7 +188,7 @@ export default function ProfilePage() {
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <Car className="w-4 h-4 text-avocado-600" />
+                  <Car className="w-4 h-4 text-coral-500" />
                   <span className="font-semibold">{profile.total_rides}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Rides</p>

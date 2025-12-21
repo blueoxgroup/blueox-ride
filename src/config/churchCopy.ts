@@ -20,7 +20,7 @@ export const churchCopyMap: Record<string, ChurchCopy> = {
   worshipharvest: {
     slug: 'worshipharvest',
     churchName: 'Worship Harvest',
-    heroHeadline: 'Carpool to Worship Harvest',
+    heroHeadline: 'Ride together to Worship Harvest',
     heroSubtext: 'Connect with church members going your way. Travel together, worship together.',
   },
   holycity: {

@@ -155,7 +155,7 @@ export function CarPhotoUpload({
               <X className="w-4 h-4" />
             </button>
             {photo.is_primary && (
-              <span className="absolute bottom-1 left-1 text-xs bg-avocado-600 text-white px-1.5 py-0.5 rounded">
+              <span className="absolute bottom-1 left-1 text-xs bg-coral-500 text-white px-1.5 py-0.5 rounded">
                 Primary
               </span>
             )}

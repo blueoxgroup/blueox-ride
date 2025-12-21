@@ -314,7 +314,7 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
-      <div className="bg-avocado-600 pt-12 pb-6 px-4">
+      <div className="bg-navy-900 pt-12 pb-6 px-4">
         <div className="max-w-lg mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -346,7 +346,7 @@ export default function PaymentPage() {
                 </div>
                 <div className="flex justify-between font-medium pt-2 border-t">
                   <span>Booking fee</span>
-                  <span className="text-avocado-600">{formatCurrency(booking.booking_fee)}</span>
+                  <span className="text-navy-900">{formatCurrency(booking.booking_fee)}</span>
                 </div>
               </div>
             </CardContent>
@@ -399,8 +399,8 @@ export default function PaymentPage() {
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-avocado-100 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-avocado-600" />
+                  <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-navy-900" />
                   </div>
                   <div>
                     <p className="font-medium">Mobile Money</p>

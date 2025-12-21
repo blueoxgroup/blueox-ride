@@ -128,7 +128,7 @@ export function PlaceInput({
         <MapPin
           className={cn(
             'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4',
-            markerColor === 'green' ? 'text-avocado-500' : 'text-destructive'
+            markerColor === 'green' ? 'text-coral-500' : 'text-destructive'
           )}
         />
         <Input

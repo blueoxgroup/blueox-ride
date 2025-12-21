@@ -81,14 +81,14 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-avocado-600 pt-12 pb-6 px-4">
+      <div className="bg-navy-900 pt-12 pb-6 px-4">
         <div className="max-w-lg mx-auto">
           <h1 className="text-xl font-semibold text-white mb-4">Search Rides</h1>
 
           {/* Main Search */}
           <div className="space-y-3">
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-avocado-500" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-coral-500" />
               <Input
                 placeholder="From where?"
                 value={origin}
@@ -115,7 +115,7 @@ export default function SearchPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Filters
                 {hasActiveFilters && (
-                  <span className="ml-2 w-5 h-5 bg-avocado-600 text-white rounded-full text-xs flex items-center justify-center">
+                  <span className="ml-2 w-5 h-5 bg-navy-900 text-white rounded-full text-xs flex items-center justify-center">
                     !
                   </span>
                 )}
@@ -231,7 +231,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-avocado-500" />
+                <div className="w-2 h-2 rounded-full bg-navy-900" />
                 <p className="font-medium text-sm truncate">{ride.origin_name}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -240,7 +240,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
               </div>
             </div>
             <div className="text-right ml-4">
-              <p className="font-bold text-avocado-600">{formatCurrency(ride.price)}</p>
+              <p className="font-bold text-coral-500">{formatCurrency(ride.price)}</p>
               <p className="text-xs text-muted-foreground">per seat</p>
             </div>
           </div>
@@ -259,7 +259,7 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
           </div>
 
           <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-            <div className="w-8 h-8 rounded-full bg-avocado-100 flex items-center justify-center text-avocado-700 text-xs font-medium">
+            <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">
               {ride.driver_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">

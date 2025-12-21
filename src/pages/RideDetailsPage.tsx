@@ -194,7 +194,7 @@ export default function RideDetailsPage() {
   return (
     <div className="min-h-screen bg-background pb-40">
       {/* Header */}
-      <div className="bg-avocado-600 pt-12 pb-20 px-4">
+      <div className="bg-navy-900 pt-12 pb-20 px-4">
         <div className="max-w-lg mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -216,7 +216,7 @@ export default function RideDetailsPage() {
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 rounded-full bg-avocado-500" />
+                    <div className="w-3 h-3 rounded-full bg-coral-500" />
                     <div className="w-0.5 h-10 bg-border" />
                     <div className="w-3 h-3 rounded-full bg-destructive" />
                   </div>
@@ -281,7 +281,7 @@ export default function RideDetailsPage() {
               <div className="flex items-center gap-4">
                 <Avatar className="w-14 h-14">
                   <AvatarImage src={ride.driver.avatar_url || undefined} />
-                  <AvatarFallback className="bg-avocado-100 text-avocado-700">
+                  <AvatarFallback className="bg-coral-100 text-navy-800">
                     {getInitials(ride.driver.full_name)}
                   </AvatarFallback>
                 </Avatar>
@@ -335,7 +335,7 @@ export default function RideDetailsPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-muted-foreground">Price per seat</span>
-                <span className="text-2xl font-bold text-avocado-600">
+                <span className="text-2xl font-bold text-navy-900">
                   {formatCurrency(ride.price)}
                 </span>
               </div>
@@ -406,9 +406,9 @@ export default function RideDetailsPage() {
               </CardContent>
             </Card>
           ) : isDriver ? (
-            <Card className="border-avocado-200 bg-avocado-50">
+            <Card className="border-coral-200 bg-coral-50">
               <CardContent className="p-5">
-                <p className="text-sm text-avocado-700 mb-3">This is your ride listing.</p>
+                <p className="text-sm text-navy-800 mb-3">This is your ride listing.</p>
                 <Button
                   variant="outline"
                   className="w-full"
@@ -422,10 +422,10 @@ export default function RideDetailsPage() {
 
           {/* Payment Info */}
           {canBook && (
-            <div className="p-4 bg-avocado-50 rounded-lg">
+            <div className="p-4 bg-coral-50 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-avocado-600 mt-0.5" />
-                <div className="text-sm text-avocado-700">
+                <Info className="w-4 h-4 text-navy-900 mt-0.5" />
+                <div className="text-sm text-navy-800">
                   <p className="font-medium mb-1">How booking works</p>
                   <ul className="space-y-1">
                     <li>1. Pay 10% booking fee ({formatCurrency(bookingFee)}/seat) via mobile money</li>

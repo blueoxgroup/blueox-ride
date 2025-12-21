@@ -8,19 +8,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Avocado green palette
-        avocado: {
-          50: '#f6f7f4',
-          100: '#e8ebe3',
-          200: '#d3d9c8',
-          300: '#b5c0a3',
-          400: '#96a57e',
-          500: '#7a8b61',
-          600: '#5f6e4b',
-          700: '#4b573d',
-          800: '#3e4734',
-          900: '#353d2e',
-          950: '#1a2016',
+        // Coral red palette - primary brand color #FF4040
+        coral: {
+          50: '#fff5f5',
+          100: '#ffe0e0',
+          200: '#ffbdbd',
+          300: '#ff8a8a',
+          400: '#ff5757',
+          500: '#FF4040',
+          600: '#e62e2e',
+          700: '#c22424',
+          800: '#9f2020',
+          900: '#831f1f',
+          950: '#470b0b',
+        },
+        // Navy blue palette - secondary brand color #193153
+        navy: {
+          50: '#f0f4f8',
+          100: '#d9e2ec',
+          200: '#b6c6d9',
+          300: '#8da2be',
+          400: '#647d9f',
+          500: '#4a6282',
+          600: '#3a4d68',
+          700: '#2f3f55',
+          800: '#273347',
+          900: '#193153',
+          950: '#0f1d31',
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

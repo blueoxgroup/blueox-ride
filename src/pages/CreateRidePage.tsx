@@ -191,7 +191,7 @@ export default function CreateRidePage() {
   return (
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
-      <div className="bg-avocado-600 pt-12 pb-6 px-4">
+      <div className="bg-navy-900 pt-12 pb-6 px-4">
         <div className="max-w-lg mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -201,7 +201,7 @@ export default function CreateRidePage() {
             Back
           </button>
           <h1 className="text-xl font-semibold text-white">Offer a Ride</h1>
-          <p className="text-avocado-100 text-sm mt-1">
+          <p className="text-coral-100 text-sm mt-1">
             Share your journey with other travelers
           </p>
         </div>
@@ -301,16 +301,16 @@ export default function CreateRidePage() {
 
               {/* Price Breakdown */}
               {priceNum > 0 && (
-                <div className="p-4 bg-avocado-50 rounded-lg space-y-2">
+                <div className="p-4 bg-coral-50 rounded-lg space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Your price per seat</span>
                     <span className="font-medium">{formatCurrency(priceNum)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Passenger pays to book (10%)</span>
-                    <span className="text-avocado-600">{formatCurrency(bookingFee)}</span>
+                    <span className="text-navy-900">{formatCurrency(bookingFee)}</span>
                   </div>
-                  <div className="flex justify-between text-sm pt-2 border-t border-avocado-200">
+                  <div className="flex justify-between text-sm pt-2 border-t border-coral-200">
                     <span className="text-muted-foreground">You receive in cash (90%)</span>
                     <span className="font-semibold">{formatCurrency(priceNum - bookingFee)}</span>
                   </div>
@@ -375,7 +375,7 @@ export default function CreateRidePage() {
                         onClick={() => setSelectedPhotoId(selectedPhotoId === photo.id ? null : photo.id)}
                         className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                           selectedPhotoId === photo.id
-                            ? 'border-avocado-500 ring-2 ring-avocado-500/20'
+                            ? 'border-coral-500 ring-2 ring-coral-500/20'
                             : 'border-transparent hover:border-muted-foreground/30'
                         }`}
                       >
@@ -385,7 +385,7 @@ export default function CreateRidePage() {
                           className="w-full h-full object-cover"
                         />
                         {selectedPhotoId === photo.id && (
-                          <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-avocado-500 flex items-center justify-center">
+                          <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-coral-500 flex items-center justify-center">
                             <Check className="w-3 h-3 text-white" />
                           </div>
                         )}
