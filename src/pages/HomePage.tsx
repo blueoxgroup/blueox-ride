@@ -141,10 +141,10 @@ export default function HomePage({
             <div className="flex items-center gap-3">
               <img
                 src="/assets/logo1.png"
-                alt="BlueOx Rides"
+                alt="Blue OX Rides"
                 className="w-10 h-10 object-contain"
               />
-              <span className="text-white font-bold text-lg">BlueOx Rides</span>
+              <span className="text-white font-bold text-lg">Blue OX Rides</span>
             </div>
             {user ? (
               <Link to="/profile">

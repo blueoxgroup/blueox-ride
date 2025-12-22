@@ -52,11 +52,11 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <img
             src="/assets/logo.png"
-            alt="BlueOx Rides"
+            alt="Blue OX Rides"
             className="mx-auto mb-2 w-16 h-16 object-contain"
           />
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your BlueOx Rides account</CardDescription>
+          <CardDescription>Sign in to your Blue OX Rides account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
