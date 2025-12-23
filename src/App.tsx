@@ -66,7 +66,7 @@ function AppRoutes() {
           <img
             src="/assets/logo.png"
             alt="Blue OX Rides"
-            className="w-20 h-20 object-contain mx-auto mb-4"
+            className="w-28 h-28 object-contain mx-auto mb-4"
           />
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500 mx-auto" />
         </div>

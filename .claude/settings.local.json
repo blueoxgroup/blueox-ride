@@ -14,7 +14,11 @@
       "WebSearch",
       "Bash(npx supabase --version)",
       "Bash(npx supabase functions deploy:*)",
-      "WebFetch(domain:blueoxrides.com)"
+      "WebFetch(domain:blueoxrides.com)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git hash-object:*)"
     ]
   }
 }

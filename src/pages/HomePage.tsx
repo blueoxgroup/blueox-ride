@@ -142,7 +142,7 @@ export default function HomePage({
               <img
                 src="/assets/logo1.png"
                 alt="Blue OX Rides"
-                className="w-10 h-10 object-contain"
+                className="w-12 h-12 object-contain"
               />
               <span className="text-white font-bold text-lg">Blue OX Rides</span>
             </div>

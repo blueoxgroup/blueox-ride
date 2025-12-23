@@ -53,7 +53,7 @@ export default function LoginPage() {
           <img
             src="/assets/logo.png"
             alt="Blue OX Rides"
-            className="mx-auto mb-2 w-16 h-16 object-contain"
+            className="mx-auto mb-2 w-20 h-20 object-contain"
           />
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>Sign in to your Blue OX Rides account</CardDescription>
