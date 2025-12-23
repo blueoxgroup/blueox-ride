@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { LocationPicker } from './LocationPicker'
 import { MapView } from './MapView'
-import { useGoogleMaps } from '@/contexts/GoogleMapsContext'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronUp, Navigation, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -36,7 +35,6 @@ export function RouteSelector({
   onRouteCalculated,
   className,
 }: RouteSelectorProps) {
-  const { isLoaded } = useGoogleMaps()
   const [showMap, setShowMap] = useState(false)
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null)
 
@@ -75,15 +73,12 @@ export function RouteSelector({
           onChange={onOriginChange}
           placeholder="Pickup location"
           markerColor="pickup"
-          showMapButton={isLoaded}
-          onMapClick={() => setShowMap(!showMap)}
         />
         <LocationPicker
           value={destination}
           onChange={onDestinationChange}
           placeholder="Drop-off location"
           markerColor="dropoff"
-          showMapButton={false}
         />
       </div>
 
