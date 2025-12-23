@@ -31,6 +31,9 @@ export default function CreateRidePage() {
   const [price, setPrice] = useState('')
   const [seats, setSeats] = useState('3')
   const [notes, setNotes] = useState('')
+  const [carBrand, setCarBrand] = useState('')
+  const [carModel, setCarModel] = useState('')
+  const [carYear, setCarYear] = useState('')
   const [loading, setLoading] = useState(false)
   const [carPhotos, setCarPhotos] = useState<CarPhoto[]>([])
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
@@ -157,6 +160,9 @@ export default function CreateRidePage() {
       total_seats: parseInt(seats),
       available_seats: parseInt(seats),
       notes: notes || null,
+      car_brand: carBrand || null,
+      car_model: carModel || null,
+      car_year: carYear ? parseInt(carYear) : null,
       status: 'active',
       car_photo_id: selectedPhotoId,
     }).select().single()
@@ -327,6 +333,45 @@ export default function CreateRidePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+              </div>
+
+              {/* Car Info */}
+              <div className="space-y-3">
+                <Label>Car Details (optional)</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="carBrand" className="text-sm">Brand</Label>
+                    <Input
+                      id="carBrand"
+                      type="text"
+                      placeholder="e.g., Toyota"
+                      value={carBrand}
+                      onChange={(e) => setCarBrand(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="carModel" className="text-sm">Model</Label>
+                    <Input
+                      id="carModel"
+                      type="text"
+                      placeholder="e.g., Corolla"
+                      value={carModel}
+                      onChange={(e) => setCarModel(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="carYear" className="text-sm">Year</Label>
+                  <Input
+                    id="carYear"
+                    type="number"
+                    placeholder="e.g., 2022"
+                    value={carYear}
+                    onChange={(e) => setCarYear(e.target.value)}
+                    min="1990"
+                    max={new Date().getFullYear() + 1}
+                  />
+                </div>
               </div>
 
               {/* Car Photo */}

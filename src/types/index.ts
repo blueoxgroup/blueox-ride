@@ -43,6 +43,9 @@ export interface Ride {
   notes: string | null
   car_photo_id: string | null
   car_photo?: CarPhoto
+  car_brand: string | null
+  car_model: string | null
+  car_year: number | null
   created_at: string
   updated_at: string
 }
@@ -111,6 +114,9 @@ export interface CreateRideRequest {
   price: number
   total_seats: number
   notes?: string
+  car_brand?: string | null
+  car_model?: string | null
+  car_year?: number | null
 }
 
 export interface SearchRidesParams {

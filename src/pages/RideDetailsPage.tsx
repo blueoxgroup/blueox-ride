@@ -253,23 +253,50 @@ export default function RideDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Car Photo Card */}
-          {ride.car_photo && (
+          {/* Car Details Card */}
+          {(ride.car_brand || ride.car_model || ride.car_year || ride.car_photo) && (
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Car className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Driver's Car</span>
+                  <span className="text-sm font-medium">Car Details</span>
                 </div>
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={ride.car_photo.photo_url}
-                    alt="Driver's car"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {ride.car_photo.caption && (
-                  <p className="text-sm text-muted-foreground mt-2">{ride.car_photo.caption}</p>
+                {(ride.car_brand || ride.car_model || ride.car_year) && (
+                  <div className="space-y-2 mb-4">
+                    {ride.car_brand && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Brand</span>
+                        <span className="font-medium">{ride.car_brand}</span>
+                      </div>
+                    )}
+                    {ride.car_model && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Model</span>
+                        <span className="font-medium">{ride.car_model}</span>
+                      </div>
+                    )}
+                    {ride.car_year && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Year</span>
+                        <span className="font-medium">{ride.car_year}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {ride.car_photo && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm font-medium mb-2">Car Photo</p>
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                      <img
+                        src={ride.car_photo.photo_url}
+                        alt="Driver's car"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {ride.car_photo.caption && (
+                      <p className="text-sm text-muted-foreground mt-2">{ride.car_photo.caption}</p>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

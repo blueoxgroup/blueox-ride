@@ -323,6 +323,16 @@ export default function MyRidesPage() {
                         </span>
                       </div>
 
+                      {(booking.ride.car_brand || booking.ride.car_model) && (
+                        <div className="text-xs text-muted-foreground mb-3">
+                          {booking.ride.car_brand && booking.ride.car_model ? (
+                            <p>{booking.ride.car_brand} {booking.ride.car_model} {booking.ride.car_year && `(${booking.ride.car_year})`}</p>
+                          ) : (
+                            <p>{booking.ride.car_brand || booking.ride.car_model}</p>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">

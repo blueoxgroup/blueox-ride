@@ -439,6 +439,16 @@ function RideCard({ ride }: { ride: RideWithDriver }) {
             </div>
           </div>
 
+          {(ride.car_brand || ride.car_model) && (
+            <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+              {ride.car_brand && ride.car_model ? (
+                <p>{ride.car_brand} {ride.car_model} {ride.car_year && `(${ride.car_year})`}</p>
+              ) : (
+                <p>{ride.car_brand || ride.car_model}</p>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mt-3 pt-3 border-t">
             <div className="w-8 h-8 rounded-full bg-coral-100 flex items-center justify-center text-navy-800 text-xs font-medium">
               {ride.driver_name?.[0]?.toUpperCase() || '?'}
