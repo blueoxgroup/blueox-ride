@@ -18,7 +18,9 @@
       "Bash(cat:*)",
       "Bash(ls:*)",
       "Bash(git ls-files:*)",
-      "Bash(git hash-object:*)"
+      "Bash(git hash-object:*)",
+      "Bash(npx supabase db push:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

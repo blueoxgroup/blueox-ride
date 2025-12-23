@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
 interface GoogleMapsContextType {
   isLoaded: boolean
@@ -27,9 +27,10 @@ export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
   const [isError, setIsError] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadGoogleMaps = useCallback(() => {
+  useEffect(() => {
     // Check if already loaded
-    if (window.google?.maps) {
+    if (window.google?.maps?.places) {
+      console.log('Google Maps already loaded')
       setIsLoaded(true)
       return
     }
@@ -43,49 +44,65 @@ export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
 
     // Check if script is already being loaded
     const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
+
     if (existingScript) {
-      existingScript.addEventListener('load', () => setIsLoaded(true))
-      existingScript.addEventListener('error', () => {
-        setIsError(true)
-        setError('Failed to load Google Maps')
-      })
-      return
+      // Poll for the google object to be available
+      const checkLoaded = setInterval(() => {
+        if (window.google?.maps?.places) {
+          console.log('Google Maps loaded (polling)')
+          setIsLoaded(true)
+          clearInterval(checkLoaded)
+        }
+      }, 100)
+
+      // Timeout after 10 seconds
+      const timeout = setTimeout(() => {
+        clearInterval(checkLoaded)
+        if (!window.google?.maps?.places) {
+          setIsError(true)
+          setError('Google Maps loading timed out')
+        }
+      }, 10000)
+
+      return () => {
+        clearInterval(checkLoaded)
+        clearTimeout(timeout)
+      }
     }
 
     // Create and load script
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,geometry&callback=initGoogleMaps`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,geometry`
     script.async = true
     script.defer = true
 
-    // Global callback for Google Maps
-    ;(window as any).initGoogleMaps = () => {
-      setIsLoaded(true)
-      delete (window as any).initGoogleMaps
+    script.onload = () => {
+      console.log('Google Maps script loaded')
+      // Wait a moment for the API to initialize
+      setTimeout(() => {
+        if (window.google?.maps?.places) {
+          setIsLoaded(true)
+        }
+      }, 100)
     }
 
     script.onerror = () => {
       setIsError(true)
       setError('Failed to load Google Maps. Please check your internet connection.')
-      delete (window as any).initGoogleMaps
     }
 
     document.head.appendChild(script)
 
     // Timeout fallback
     const timeout = setTimeout(() => {
-      if (!isLoaded && !isError) {
+      if (!window.google?.maps?.places) {
         setIsError(true)
         setError('Google Maps loading timed out')
       }
     }, 10000)
 
     return () => clearTimeout(timeout)
-  }, [isLoaded, isError])
-
-  useEffect(() => {
-    loadGoogleMaps()
-  }, [loadGoogleMaps])
+  }, [])
 
   return (
     <GoogleMapsContext.Provider value={{ isLoaded, isError, error }}>

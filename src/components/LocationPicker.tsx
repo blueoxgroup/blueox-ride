@@ -43,6 +43,9 @@ export function LocationPicker({
   onMapClick,
 }: LocationPickerProps) {
   const { isLoaded, isError } = useGoogleMaps()
+
+  // Debug log
+  console.log('LocationPicker render:', { isLoaded, isError, hasValue: !!value })
   const [input, setInput] = useState(value?.name || '')
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(false)
@@ -81,6 +84,8 @@ export function LocationPicker({
 
   // Fetch predictions using Google Maps API
   const fetchPredictions = useCallback(async (searchText: string) => {
+    console.log('fetchPredictions called:', { searchText, isLoaded, hasService: !!autocompleteServiceRef.current })
+
     if (!searchText || searchText.length < 2) {
       setPredictions([])
       return
@@ -90,6 +95,7 @@ export function LocationPicker({
 
     // Try native API first
     if (isLoaded && autocompleteServiceRef.current) {
+      console.log('Using native Google Maps API for autocomplete')
       try {
         const request: google.maps.places.AutocompletionRequest = {
           input: searchText,
@@ -97,6 +103,7 @@ export function LocationPicker({
         }
 
         autocompleteServiceRef.current.getPlacePredictions(request, (results, status) => {
+          console.log('Autocomplete results:', { status, count: results?.length })
           setLoading(false)
           if (status === google.maps.places.PlacesServiceStatus.OK && results) {
             setPredictions(results.map(r => ({
@@ -106,6 +113,7 @@ export function LocationPicker({
             })))
             setShowDropdown(true)
           } else {
+            console.log('Autocomplete status not OK:', status)
             setPredictions([])
           }
         })
