@@ -6,17 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { PlaceInput } from '@/components/PlaceInput'
+import { LocationPicker } from '@/components/LocationPicker'
 import { CarPhotoUpload } from '@/components/CarPhotoUpload'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, calculateBookingFee } from '@/lib/utils'
 import { ArrowLeft, Info, Car, Check } from 'lucide-react'
 import type { CarPhoto } from '@/types'
 
-interface LocationData {
+interface Location {
+  lat: number
+  lng: number
   name: string
-  lat: number | null
-  lng: number | null
 }
 
 export default function CreateRidePage() {
@@ -24,8 +24,8 @@ export default function CreateRidePage() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const [origin, setOrigin] = useState<LocationData>({ name: '', lat: null, lng: null })
-  const [destination, setDestination] = useState<LocationData>({ name: '', lat: null, lng: null })
+  const [origin, setOrigin] = useState<Location | null>(null)
+  const [destination, setDestination] = useState<Location | null>(null)
   const [departureDate, setDepartureDate] = useState('')
   const [departureTime, setDepartureTime] = useState('')
   const [price, setPrice] = useState('')
@@ -70,22 +70,6 @@ export default function CreateRidePage() {
     }
   }
 
-  const handleOriginChange = (name: string, lat?: number, lng?: number) => {
-    setOrigin({
-      name,
-      lat: lat ?? null,
-      lng: lng ?? null,
-    })
-  }
-
-  const handleDestinationChange = (name: string, lat?: number, lng?: number) => {
-    setDestination({
-      name,
-      lat: lat ?? null,
-      lng: lng ?? null,
-    })
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -109,7 +93,7 @@ export default function CreateRidePage() {
     }
 
     // Validate locations
-    if (!origin.name || !destination.name) {
+    if (!origin || !destination) {
       toast({
         title: 'Missing locations',
         description: 'Please enter both pickup and drop-off locations.',
@@ -118,11 +102,11 @@ export default function CreateRidePage() {
       return
     }
 
-    // Use default coordinates for Uganda if not available
-    const originLat = origin.lat ?? 0.3476
-    const originLng = origin.lng ?? 32.5825
-    const destLat = destination.lat ?? 0.3476
-    const destLng = destination.lng ?? 32.5825
+    // Use coordinates from selected locations (default to Uganda center if somehow missing)
+    const originLat = origin.lat || 0.3476
+    const originLng = origin.lng || 32.5825
+    const destLat = destination.lat || 0.3476
+    const destLng = destination.lng || 32.5825
 
     const departureDateTime = new Date(`${departureDate}T${departureTime}`)
 
@@ -236,17 +220,17 @@ export default function CreateRidePage() {
               {/* Route */}
               <div className="space-y-3">
                 <Label>Route</Label>
-                <PlaceInput
-                  value={origin.name}
-                  onChange={handleOriginChange}
+                <LocationPicker
+                  value={origin}
+                  onChange={setOrigin}
                   placeholder="Pickup location"
-                  markerColor="green"
+                  markerColor="pickup"
                 />
-                <PlaceInput
-                  value={destination.name}
-                  onChange={handleDestinationChange}
+                <LocationPicker
+                  value={destination}
+                  onChange={setDestination}
                   placeholder="Drop-off location"
-                  markerColor="red"
+                  markerColor="dropoff"
                 />
               </div>
 
