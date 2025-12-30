@@ -39,11 +39,27 @@ export function LocationPicker({
   const [showDropdown, setShowDropdown] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
 
   // Update input when value changes externally
   useEffect(() => {
     setInput(value?.name || '')
   }, [value?.name])
+
+  // Initialize legacy services as fallback
+  useEffect(() => {
+    if (isLoaded && !autocompleteServiceRef.current) {
+      try {
+        autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+        const dummyElement = document.createElement('div')
+        placesServiceRef.current = new google.maps.places.PlacesService(dummyElement)
+        console.log('Legacy Places services initialized')
+      } catch (e) {
+        console.log('Could not initialize legacy Places services:', e)
+      }
+    }
+  }, [isLoaded])
 
   // Handle click outside
   useEffect(() => {
@@ -57,8 +73,10 @@ export function LocationPicker({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch suggestions using new Places API
+  // Try new API first, fall back to legacy
   const fetchSuggestions = useCallback(async (searchText: string) => {
+    console.log('fetchSuggestions called:', { searchText, isLoaded })
+
     if (!searchText || searchText.length < 2) {
       setSuggestions([])
       return
@@ -71,36 +89,69 @@ export function LocationPicker({
 
     setLoading(true)
 
+    // Try new API first
     try {
-      // Use the new Places API (AutocompleteSuggestion)
-      const { suggestions: results } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-        input: searchText,
-        includedRegionCodes: ['UG'], // Uganda
-      })
-
-      console.log('Autocomplete suggestions:', results?.length)
-
-      if (results && results.length > 0) {
-        const mappedSuggestions: Suggestion[] = results.map((suggestion) => {
-          const placePrediction = suggestion.placePrediction
-          return {
-            placeId: placePrediction?.placeId || '',
-            mainText: placePrediction?.mainText?.text || '',
-            secondaryText: placePrediction?.secondaryText?.text || '',
-            fullText: placePrediction?.text?.text || '',
-          }
+      if (typeof google.maps.places.AutocompleteSuggestion?.fetchAutocompleteSuggestions === 'function') {
+        console.log('Using new Places API')
+        const { suggestions: results } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: searchText,
+          includedRegionCodes: ['UG'],
         })
-        setSuggestions(mappedSuggestions)
-        setShowDropdown(true)
-      } else {
-        setSuggestions([])
+
+        if (results && results.length > 0) {
+          const mappedSuggestions: Suggestion[] = results.map((suggestion) => {
+            const placePrediction = suggestion.placePrediction
+            return {
+              placeId: placePrediction?.placeId || '',
+              mainText: placePrediction?.mainText?.text || '',
+              secondaryText: placePrediction?.secondaryText?.text || '',
+              fullText: placePrediction?.text?.text || '',
+            }
+          })
+          setSuggestions(mappedSuggestions)
+          setShowDropdown(true)
+          setLoading(false)
+          return
+        }
       }
     } catch (error) {
-      console.error('Autocomplete error:', error)
-      setSuggestions([])
-    } finally {
-      setLoading(false)
+      console.log('New API failed, trying legacy:', error)
     }
+
+    // Fall back to legacy API
+    if (autocompleteServiceRef.current) {
+      console.log('Using legacy Places API')
+      try {
+        autocompleteServiceRef.current.getPlacePredictions(
+          {
+            input: searchText,
+            componentRestrictions: { country: 'ug' },
+          },
+          (results, status) => {
+            console.log('Legacy API results:', { status, count: results?.length })
+            setLoading(false)
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              const mappedSuggestions: Suggestion[] = results.map((r) => ({
+                placeId: r.place_id,
+                mainText: r.structured_formatting?.main_text || r.description,
+                secondaryText: r.structured_formatting?.secondary_text || '',
+                fullText: r.description,
+              }))
+              setSuggestions(mappedSuggestions)
+              setShowDropdown(true)
+            } else {
+              setSuggestions([])
+            }
+          }
+        )
+        return
+      } catch (error) {
+        console.error('Legacy API error:', error)
+      }
+    }
+
+    setLoading(false)
+    setSuggestions([])
   }, [isLoaded])
 
   // Handle input change
@@ -108,7 +159,6 @@ export function LocationPicker({
     const newValue = e.target.value
     setInput(newValue)
 
-    // Clear location when typing
     if (value) {
       onChange(null)
     }
@@ -122,48 +172,74 @@ export function LocationPicker({
     }, 300)
   }
 
-  // Handle place selection using new Place API
+  // Handle place selection
   const handleSelectPlace = async (suggestion: Suggestion) => {
     setInput(suggestion.fullText || suggestion.mainText)
     setShowDropdown(false)
     setSuggestions([])
     setLoading(true)
 
+    // Try new API first
     try {
-      // Use the new Place API to get details
-      const place = new google.maps.places.Place({
-        id: suggestion.placeId,
-      })
-
-      await place.fetchFields({
-        fields: ['location', 'displayName', 'formattedAddress'],
-      })
-
-      if (place.location) {
-        onChange({
-          lat: place.location.lat(),
-          lng: place.location.lng(),
-          name: suggestion.fullText || suggestion.mainText,
+      if (typeof google.maps.places.Place === 'function') {
+        console.log('Using new Place API for details')
+        const place = new google.maps.places.Place({
+          id: suggestion.placeId,
         })
-      } else {
-        // Fallback: just use the name without coordinates
-        onChange({
-          lat: 0,
-          lng: 0,
-          name: suggestion.fullText || suggestion.mainText,
+
+        await place.fetchFields({
+          fields: ['location', 'displayName', 'formattedAddress'],
         })
+
+        if (place.location) {
+          onChange({
+            lat: place.location.lat(),
+            lng: place.location.lng(),
+            name: suggestion.fullText || suggestion.mainText,
+          })
+          setLoading(false)
+          return
+        }
       }
     } catch (error) {
-      console.error('Place details error:', error)
-      // Fallback: just use the name without coordinates
-      onChange({
-        lat: 0,
-        lng: 0,
-        name: suggestion.fullText || suggestion.mainText,
-      })
-    } finally {
-      setLoading(false)
+      console.log('New Place API failed, trying legacy:', error)
     }
+
+    // Fall back to legacy API
+    if (placesServiceRef.current) {
+      console.log('Using legacy PlacesService for details')
+      placesServiceRef.current.getDetails(
+        {
+          placeId: suggestion.placeId,
+          fields: ['geometry', 'name', 'formatted_address'],
+        },
+        (result, status) => {
+          setLoading(false)
+          if (status === google.maps.places.PlacesServiceStatus.OK && result?.geometry?.location) {
+            onChange({
+              lat: result.geometry.location.lat(),
+              lng: result.geometry.location.lng(),
+              name: suggestion.fullText || suggestion.mainText,
+            })
+          } else {
+            onChange({
+              lat: 0,
+              lng: 0,
+              name: suggestion.fullText || suggestion.mainText,
+            })
+          }
+        }
+      )
+      return
+    }
+
+    // Final fallback - just use the name
+    setLoading(false)
+    onChange({
+      lat: 0,
+      lng: 0,
+      name: suggestion.fullText || suggestion.mainText,
+    })
   }
 
   // Clear location
