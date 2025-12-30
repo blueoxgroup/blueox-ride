@@ -1,7 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
-import { useGoogleMaps } from '@/contexts/GoogleMapsContext'
-import { Navigation, Loader2, AlertCircle } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import { Navigation, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import 'leaflet/dist/leaflet.css'
 
 interface Location {
   lat: number
@@ -11,9 +13,9 @@ interface Location {
 
 interface RouteInfo {
   distance: string
-  distanceValue: number // in meters
+  distanceValue: number
   duration: string
-  durationValue: number // in seconds
+  durationValue: number
 }
 
 interface MapViewProps {
@@ -28,346 +30,201 @@ interface MapViewProps {
   className?: string
 }
 
-// Uganda center coordinates
-const UGANDA_CENTER = { lat: 1.3733, lng: 32.2903 }
-const DEFAULT_ZOOM = 7
+// Custom marker icons
+const createIcon = (color: string) => {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      background-color: ${color};
+      width: 24px;
+      height: 24px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 3px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    "></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+  })
+}
+
+const pickupIcon = createIcon('#FF4040') // coral
+const dropoffIcon = createIcon('#193153') // navy
+
+// Component to fit bounds when markers change
+function FitBounds({ origin, destination }: { origin?: Location | null; destination?: Location | null }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const points: [number, number][] = []
+    if (origin && origin.lat !== 0) {
+      points.push([origin.lat, origin.lng])
+    }
+    if (destination && destination.lat !== 0) {
+      points.push([destination.lat, destination.lng])
+    }
+
+    if (points.length > 0) {
+      const bounds = L.latLngBounds(points)
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
+    }
+  }, [map, origin, destination])
+
+  return null
+}
 
 export function MapView({
   origin,
   destination,
-  onOriginChange,
-  onDestinationChange,
   onRouteCalculated,
   showRoute = true,
-  interactive = false,
-  height = '200px',
+  height = '300px',
   className,
 }: MapViewProps) {
-  const { isLoaded, isError, error } = useGoogleMaps()
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<google.maps.Map | null>(null)
-  const originMarkerRef = useRef<google.maps.Marker | null>(null)
-  const destinationMarkerRef = useRef<google.maps.Marker | null>(null)
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
+  const [routePoints, setRoutePoints] = useState<[number, number][]>([])
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null)
-  const [isCalculating, setIsCalculating] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  // Initialize map
-  useEffect(() => {
-    if (!isLoaded || !mapRef.current || mapInstanceRef.current) return
+  // Default center (Uganda)
+  const defaultCenter: [number, number] = [0.3476, 32.5825]
 
-    const map = new google.maps.Map(mapRef.current, {
-      center: origin || destination || UGANDA_CENTER,
-      zoom: origin || destination ? 14 : DEFAULT_ZOOM,
-      disableDefaultUI: true,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      gestureHandling: 'greedy',
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }],
-        },
-      ],
-    })
-
-    mapInstanceRef.current = map
-
-    // Initialize directions renderer
-    directionsRendererRef.current = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#FF4040',
-        strokeWeight: 4,
-        strokeOpacity: 0.8,
-      },
-    })
-
-    // Handle map clicks for interactive mode
-    if (interactive) {
-      map.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return
-
-        const location: Location = {
-          lat: e.latLng.lat(),
-          lng: e.latLng.lng(),
-        }
-
-        // Reverse geocode to get place name
-        const geocoder = new google.maps.Geocoder()
-        geocoder.geocode({ location: e.latLng }, (results, status) => {
-          if (status === 'OK' && results?.[0]) {
-            location.name = results[0].formatted_address
-          }
-
-          // Set origin first, then destination
-          if (!origin && onOriginChange) {
-            onOriginChange(location)
-          } else if (origin && !destination && onDestinationChange) {
-            onDestinationChange(location)
-          }
-        })
-      })
+  // Get map center
+  const getCenter = (): [number, number] => {
+    if (origin && origin.lat !== 0) {
+      return [origin.lat, origin.lng]
     }
-
-    return () => {
-      // Cleanup
-      if (originMarkerRef.current) originMarkerRef.current.setMap(null)
-      if (destinationMarkerRef.current) destinationMarkerRef.current.setMap(null)
-      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null)
+    if (destination && destination.lat !== 0) {
+      return [destination.lat, destination.lng]
     }
-  }, [isLoaded, interactive])
+    return defaultCenter
+  }
 
-  // Update origin marker
-  useEffect(() => {
-    if (!isLoaded || !mapInstanceRef.current) return
-
-    if (originMarkerRef.current) {
-      originMarkerRef.current.setMap(null)
-    }
-
-    if (origin) {
-      originMarkerRef.current = new google.maps.Marker({
-        position: origin,
-        map: mapInstanceRef.current,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#FF4040',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 3,
-        },
-        title: origin.name || 'Pickup',
-        draggable: interactive,
-      })
-
-      if (interactive && onOriginChange) {
-        originMarkerRef.current.addListener('dragend', () => {
-          const pos = originMarkerRef.current?.getPosition()
-          if (pos) {
-            const geocoder = new google.maps.Geocoder()
-            geocoder.geocode({ location: pos }, (results, status) => {
-              onOriginChange({
-                lat: pos.lat(),
-                lng: pos.lng(),
-                name: status === 'OK' && results?.[0] ? results[0].formatted_address : undefined,
-              })
-            })
-          }
-        })
-      }
-    }
-  }, [isLoaded, origin, interactive, onOriginChange])
-
-  // Update destination marker
-  useEffect(() => {
-    if (!isLoaded || !mapInstanceRef.current) return
-
-    if (destinationMarkerRef.current) {
-      destinationMarkerRef.current.setMap(null)
-    }
-
-    if (destination) {
-      destinationMarkerRef.current = new google.maps.Marker({
-        position: destination,
-        map: mapInstanceRef.current,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#193153',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 3,
-        },
-        title: destination.name || 'Drop-off',
-        draggable: interactive,
-      })
-
-      if (interactive && onDestinationChange) {
-        destinationMarkerRef.current.addListener('dragend', () => {
-          const pos = destinationMarkerRef.current?.getPosition()
-          if (pos) {
-            const geocoder = new google.maps.Geocoder()
-            geocoder.geocode({ location: pos }, (results, status) => {
-              onDestinationChange({
-                lat: pos.lat(),
-                lng: pos.lng(),
-                name: status === 'OK' && results?.[0] ? results[0].formatted_address : undefined,
-              })
-            })
-          }
-        })
-      }
-    }
-  }, [isLoaded, destination, interactive, onDestinationChange])
-
-  // Fit bounds to show both markers
-  useEffect(() => {
-    if (!isLoaded || !mapInstanceRef.current) return
-
-    const bounds = new google.maps.LatLngBounds()
-    let hasPoints = false
-
-    if (origin) {
-      bounds.extend(origin)
-      hasPoints = true
-    }
-    if (destination) {
-      bounds.extend(destination)
-      hasPoints = true
-    }
-
-    if (hasPoints) {
-      mapInstanceRef.current.fitBounds(bounds, 50)
-      // Don't zoom in too much for single point
-      const listener = google.maps.event.addListener(mapInstanceRef.current, 'idle', () => {
-        const zoom = mapInstanceRef.current?.getZoom()
-        if (zoom && zoom > 15) {
-          mapInstanceRef.current?.setZoom(15)
-        }
-        google.maps.event.removeListener(listener)
-      })
-    }
-  }, [isLoaded, origin, destination])
-
-  // Calculate and display route
+  // Calculate route using OSRM (free routing service)
   const calculateRoute = useCallback(async () => {
-    if (!isLoaded || !origin || !destination || !showRoute) return
+    if (!origin || !destination || origin.lat === 0 || destination.lat === 0) {
+      setRoutePoints([])
+      setRouteInfo(null)
+      return
+    }
 
-    setIsCalculating(true)
-
-    const directionsService = new google.maps.DirectionsService()
+    setLoading(true)
 
     try {
-      const result = await directionsService.route({
-        origin: origin,
-        destination: destination,
-        travelMode: google.maps.TravelMode.DRIVING,
-      })
+      // Use OSRM public API for routing
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
+      )
 
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setDirections(result)
+      if (!response.ok) {
+        throw new Error('Routing API error')
       }
 
-      const route = result.routes[0]?.legs[0]
-      if (route) {
+      const data = await response.json()
+
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0]
+
+        // Extract route geometry
+        const coordinates = route.geometry.coordinates.map(
+          (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+        )
+        setRoutePoints(coordinates)
+
+        // Calculate distance and duration
+        const distanceKm = route.distance / 1000
+        const durationMin = route.duration / 60
+
         const info: RouteInfo = {
-          distance: route.distance?.text || '',
-          distanceValue: route.distance?.value || 0,
-          duration: route.duration?.text || '',
-          durationValue: route.duration?.value || 0,
+          distance: distanceKm < 1 ? `${Math.round(route.distance)} m` : `${distanceKm.toFixed(1)} km`,
+          distanceValue: distanceKm,
+          duration: durationMin < 60 ? `${Math.round(durationMin)} min` : `${Math.floor(durationMin / 60)}h ${Math.round(durationMin % 60)}min`,
+          durationValue: durationMin,
         }
+
         setRouteInfo(info)
         onRouteCalculated?.(info)
       }
     } catch (error) {
       console.error('Route calculation error:', error)
-      // Clear route on error
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setDirections({ routes: [] } as any)
-      }
+      setRoutePoints([])
       setRouteInfo(null)
     } finally {
-      setIsCalculating(false)
+      setLoading(false)
     }
-  }, [isLoaded, origin, destination, showRoute, onRouteCalculated])
+  }, [origin, destination, onRouteCalculated])
 
+  // Calculate route when origin/destination change
   useEffect(() => {
-    if (origin && destination && showRoute) {
+    if (showRoute) {
       calculateRoute()
-    } else {
-      // Clear route when one point is missing
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setDirections({ routes: [] } as any)
-      }
-      setRouteInfo(null)
     }
-  }, [origin, destination, showRoute, calculateRoute])
+  }, [showRoute, calculateRoute])
 
-  // Error state
-  if (isError) {
-    return (
-      <div
-        className={cn(
-          'flex flex-col items-center justify-center bg-muted rounded-lg border',
-          className
-        )}
-        style={{ height }}
-      >
-        <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground text-center px-4">
-          {error || 'Maps unavailable'}
-        </p>
-        {origin && destination && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Route: {origin.name} → {destination.name}
-          </p>
-        )}
-      </div>
-    )
-  }
-
-  // Loading state
-  if (!isLoaded) {
-    return (
-      <div
-        className={cn(
-          'flex items-center justify-center bg-muted rounded-lg border',
-          className
-        )}
-        style={{ height }}
-      >
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+  const hasOrigin = origin && origin.lat !== 0
+  const hasDestination = destination && destination.lat !== 0
 
   return (
-    <div className={cn('relative rounded-lg overflow-hidden border', className)}>
-      <div ref={mapRef} style={{ height, width: '100%' }} />
+    <div className={cn('relative rounded-lg overflow-hidden', className)} style={{ height }}>
+      <MapContainer
+        center={getCenter()}
+        zoom={13}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* Origin marker */}
+        {hasOrigin && (
+          <Marker
+            position={[origin.lat, origin.lng]}
+            icon={pickupIcon}
+          />
+        )}
+
+        {/* Destination marker */}
+        {hasDestination && (
+          <Marker
+            position={[destination.lat, destination.lng]}
+            icon={dropoffIcon}
+          />
+        )}
+
+        {/* Route line */}
+        {showRoute && routePoints.length > 0 && (
+          <Polyline
+            positions={routePoints}
+            color="#FF4040"
+            weight={4}
+            opacity={0.8}
+          />
+        )}
+
+        {/* Fit bounds to markers */}
+        <FitBounds origin={origin} destination={destination} />
+      </MapContainer>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-coral-500" />
+        </div>
+      )}
 
       {/* Route info overlay */}
-      {routeInfo && (
-        <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-coral-500" />
-              <span className="font-medium">{routeInfo.distance}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>~{routeInfo.duration}</span>
-            </div>
+      {routeInfo && !loading && (
+        <div className="absolute bottom-2 left-2 right-2 bg-background/95 backdrop-blur rounded-lg px-4 py-2 flex items-center justify-center gap-6 shadow-lg">
+          <div className="flex items-center gap-2 text-sm">
+            <Navigation className="w-4 h-4 text-coral-500" />
+            <span className="font-medium">{routeInfo.distance}</span>
           </div>
-        </div>
-      )}
-
-      {/* Calculating indicator */}
-      {isCalculating && (
-        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm rounded-full p-2 shadow">
-          <Loader2 className="w-4 h-4 animate-spin text-coral-500" />
-        </div>
-      )}
-
-      {/* Legend */}
-      {(origin || destination) && (
-        <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm rounded-lg p-2 shadow text-xs space-y-1">
-          {origin && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-coral-500 border-2 border-white shadow" />
-              <span className="truncate max-w-[120px]">Pickup</span>
-            </div>
-          )}
-          {destination && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-navy-900 border-2 border-white shadow" />
-              <span className="truncate max-w-[120px]">Drop-off</span>
-            </div>
-          )}
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="w-4 h-4" />
+            <span>~{routeInfo.duration}</span>
+          </div>
         </div>
       )}
     </div>

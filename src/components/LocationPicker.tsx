@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useGoogleMaps } from '@/contexts/GoogleMapsContext'
 import { Input } from '@/components/ui/input'
 import { MapPin, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,11 +17,20 @@ interface LocationPickerProps {
   className?: string
 }
 
-interface Suggestion {
-  placeId: string
-  mainText: string
-  secondaryText: string
-  fullText: string
+interface NominatimResult {
+  place_id: number
+  display_name: string
+  lat: string
+  lon: string
+  address?: {
+    road?: string
+    suburb?: string
+    city?: string
+    town?: string
+    village?: string
+    state?: string
+    country?: string
+  }
 }
 
 export function LocationPicker({
@@ -32,34 +40,17 @@ export function LocationPicker({
   markerColor = 'pickup',
   className,
 }: LocationPickerProps) {
-  const { isLoaded, isError } = useGoogleMaps()
   const [input, setInput] = useState(value?.name || '')
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([])
   const [loading, setLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
 
   // Update input when value changes externally
   useEffect(() => {
     setInput(value?.name || '')
   }, [value?.name])
-
-  // Initialize legacy services as fallback
-  useEffect(() => {
-    if (isLoaded && !autocompleteServiceRef.current) {
-      try {
-        autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
-        const dummyElement = document.createElement('div')
-        placesServiceRef.current = new google.maps.places.PlacesService(dummyElement)
-        console.log('Legacy Places services initialized')
-      } catch (e) {
-        console.log('Could not initialize legacy Places services:', e)
-      }
-    }
-  }, [isLoaded])
 
   // Handle click outside
   useEffect(() => {
@@ -73,86 +64,43 @@ export function LocationPicker({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Try new API first, fall back to legacy
+  // Fetch suggestions using Nominatim (OpenStreetMap)
   const fetchSuggestions = useCallback(async (searchText: string) => {
-    console.log('fetchSuggestions called:', { searchText, isLoaded })
-
-    if (!searchText || searchText.length < 2) {
+    if (!searchText || searchText.length < 3) {
       setSuggestions([])
-      return
-    }
-
-    if (!isLoaded) {
-      console.log('Google Maps not loaded yet')
       return
     }
 
     setLoading(true)
 
-    // Try new API first
     try {
-      if (typeof google.maps.places.AutocompleteSuggestion?.fetchAutocompleteSuggestions === 'function') {
-        console.log('Using new Places API')
-        const { suggestions: results } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: searchText,
-          includedRegionCodes: ['UG'],
-        })
-
-        if (results && results.length > 0) {
-          const mappedSuggestions: Suggestion[] = results.map((suggestion) => {
-            const placePrediction = suggestion.placePrediction
-            return {
-              placeId: placePrediction?.placeId || '',
-              mainText: placePrediction?.mainText?.text || '',
-              secondaryText: placePrediction?.secondaryText?.text || '',
-              fullText: placePrediction?.text?.text || '',
-            }
-          })
-          setSuggestions(mappedSuggestions)
-          setShowDropdown(true)
-          setLoading(false)
-          return
-        }
-      }
-    } catch (error) {
-      console.log('New API failed, trying legacy:', error)
-    }
-
-    // Fall back to legacy API
-    if (autocompleteServiceRef.current) {
-      console.log('Using legacy Places API')
-      try {
-        autocompleteServiceRef.current.getPlacePredictions(
-          {
-            input: searchText,
-            componentRestrictions: { country: 'ug' },
+      // Use Nominatim API - free OpenStreetMap geocoding
+      const encodedQuery = encodeURIComponent(searchText)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&countrycodes=ug&limit=5&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
           },
-          (results, status) => {
-            console.log('Legacy API results:', { status, count: results?.length })
-            setLoading(false)
-            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-              const mappedSuggestions: Suggestion[] = results.map((r) => ({
-                placeId: r.place_id,
-                mainText: r.structured_formatting?.main_text || r.description,
-                secondaryText: r.structured_formatting?.secondary_text || '',
-                fullText: r.description,
-              }))
-              setSuggestions(mappedSuggestions)
-              setShowDropdown(true)
-            } else {
-              setSuggestions([])
-            }
-          }
-        )
-        return
-      } catch (error) {
-        console.error('Legacy API error:', error)
-      }
-    }
+        }
+      )
 
-    setLoading(false)
-    setSuggestions([])
-  }, [isLoaded])
+      if (!response.ok) {
+        throw new Error('Nominatim API error')
+      }
+
+      const results: NominatimResult[] = await response.json()
+      console.log('Nominatim results:', results.length)
+
+      setSuggestions(results)
+      setShowDropdown(results.length > 0)
+    } catch (error) {
+      console.error('Nominatim error:', error)
+      setSuggestions([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,76 +117,43 @@ export function LocationPicker({
 
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(newValue)
-    }, 300)
+    }, 400) // Slightly longer debounce for Nominatim rate limits
+  }
+
+  // Get a shorter display name from the result
+  const getShortName = (result: NominatimResult): string => {
+    const parts: string[] = []
+    if (result.address) {
+      if (result.address.road) parts.push(result.address.road)
+      if (result.address.suburb) parts.push(result.address.suburb)
+      const city = result.address.city || result.address.town || result.address.village
+      if (city) parts.push(city)
+    }
+    return parts.length > 0 ? parts.join(', ') : result.display_name.split(',').slice(0, 2).join(',')
+  }
+
+  // Get secondary text (region/country)
+  const getSecondaryText = (result: NominatimResult): string => {
+    if (result.address) {
+      const parts: string[] = []
+      if (result.address.state) parts.push(result.address.state)
+      if (result.address.country) parts.push(result.address.country)
+      return parts.join(', ')
+    }
+    return result.display_name.split(',').slice(2).join(',').trim()
   }
 
   // Handle place selection
-  const handleSelectPlace = async (suggestion: Suggestion) => {
-    setInput(suggestion.fullText || suggestion.mainText)
+  const handleSelectPlace = (result: NominatimResult) => {
+    const shortName = getShortName(result)
+    setInput(shortName)
     setShowDropdown(false)
     setSuggestions([])
-    setLoading(true)
 
-    // Try new API first
-    try {
-      if (typeof google.maps.places.Place === 'function') {
-        console.log('Using new Place API for details')
-        const place = new google.maps.places.Place({
-          id: suggestion.placeId,
-        })
-
-        await place.fetchFields({
-          fields: ['location', 'displayName', 'formattedAddress'],
-        })
-
-        if (place.location) {
-          onChange({
-            lat: place.location.lat(),
-            lng: place.location.lng(),
-            name: suggestion.fullText || suggestion.mainText,
-          })
-          setLoading(false)
-          return
-        }
-      }
-    } catch (error) {
-      console.log('New Place API failed, trying legacy:', error)
-    }
-
-    // Fall back to legacy API
-    if (placesServiceRef.current) {
-      console.log('Using legacy PlacesService for details')
-      placesServiceRef.current.getDetails(
-        {
-          placeId: suggestion.placeId,
-          fields: ['geometry', 'name', 'formatted_address'],
-        },
-        (result, status) => {
-          setLoading(false)
-          if (status === google.maps.places.PlacesServiceStatus.OK && result?.geometry?.location) {
-            onChange({
-              lat: result.geometry.location.lat(),
-              lng: result.geometry.location.lng(),
-              name: suggestion.fullText || suggestion.mainText,
-            })
-          } else {
-            onChange({
-              lat: 0,
-              lng: 0,
-              name: suggestion.fullText || suggestion.mainText,
-            })
-          }
-        }
-      )
-      return
-    }
-
-    // Final fallback - just use the name
-    setLoading(false)
     onChange({
-      lat: 0,
-      lng: 0,
-      name: suggestion.fullText || suggestion.mainText,
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+      name: shortName,
     })
   }
 
@@ -279,31 +194,22 @@ export function LocationPicker({
       {/* Suggestions dropdown */}
       {showDropdown && suggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((suggestion) => (
+          {suggestions.map((result) => (
             <button
-              key={suggestion.placeId}
+              key={result.place_id}
               type="button"
-              onClick={() => handleSelectPlace(suggestion)}
+              onClick={() => handleSelectPlace(result)}
               className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b last:border-b-0"
             >
               <p className="font-medium text-sm truncate">
-                {suggestion.mainText}
+                {getShortName(result)}
               </p>
-              {suggestion.secondaryText && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {suggestion.secondaryText}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground truncate">
+                {getSecondaryText(result)}
+              </p>
             </button>
           ))}
         </div>
-      )}
-
-      {/* Error fallback message */}
-      {isError && (
-        <p className="text-xs text-muted-foreground mt-1">
-          Location search limited. You can still type an address manually.
-        </p>
       )}
     </div>
   )
