@@ -5,9 +5,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LocationPicker } from '@/components/LocationPicker'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
-import { Search, MapPin, Calendar, Users, Star, Filter, X } from 'lucide-react'
+import { Search, Calendar, Users, Star, Filter, X } from 'lucide-react'
+
+interface Location {
+  lat: number
+  lng: number
+  name: string
+}
 
 interface RideWithDriver extends Ride {
   driver_name: string
@@ -16,8 +23,8 @@ interface RideWithDriver extends Ride {
 }
 
 export default function SearchPage() {
-  const [origin, setOrigin] = useState('')
-  const [destination, setDestination] = useState('')
+  const [origin, setOrigin] = useState<Location | null>(null)
+  const [destination, setDestination] = useState<Location | null>(null)
   const [date, setDate] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [minSeats, setMinSeats] = useState('1')
@@ -38,11 +45,11 @@ export default function SearchPage() {
       .gte('available_seats', parseInt(minSeats) || 1)
       .order('departure_time', { ascending: true })
 
-    if (origin) {
-      query = query.ilike('origin_name', `%${origin}%`)
+    if (origin?.name) {
+      query = query.ilike('origin_name', `%${origin.name}%`)
     }
-    if (destination) {
-      query = query.ilike('destination_name', `%${destination}%`)
+    if (destination?.name) {
+      query = query.ilike('destination_name', `%${destination.name}%`)
     }
     if (date) {
       const startOfDay = new Date(date)
@@ -69,8 +76,8 @@ export default function SearchPage() {
   }
 
   const clearFilters = () => {
-    setOrigin('')
-    setDestination('')
+    setOrigin(null)
+    setDestination(null)
     setDate('')
     setMaxPrice('')
     setMinSeats('1')
@@ -87,24 +94,18 @@ export default function SearchPage() {
 
           {/* Main Search */}
           <div className="space-y-3">
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-coral-500" />
-              <Input
-                placeholder="From where?"
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                className="pl-10 bg-white"
-              />
-            </div>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" />
-              <Input
-                placeholder="To where?"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="pl-10 bg-white"
-              />
-            </div>
+            <LocationPicker
+              value={origin}
+              onChange={setOrigin}
+              placeholder="From where?"
+              markerColor="pickup"
+            />
+            <LocationPicker
+              value={destination}
+              onChange={setDestination}
+              placeholder="To where?"
+              markerColor="dropoff"
+            />
             <div className="flex gap-2">
               <Button
                 type="button"

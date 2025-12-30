@@ -4,10 +4,16 @@ import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { LocationPicker } from '@/components/LocationPicker'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
 import { Search, Calendar, Users, Star, Plus, ArrowRight, RefreshCw, Shield, Wallet, UserCheck } from 'lucide-react'
+
+interface Location {
+  lat: number
+  lng: number
+  name: string
+}
 
 interface RideWithDriver extends Ride {
   driver_name: string
@@ -30,8 +36,8 @@ export default function HomePage({
   loggedInPrompt = 'Where are you heading today?',
 }: HomePageProps = {}) {
   const { user, profile } = useAuth()
-  const [searchOrigin, setSearchOrigin] = useState('')
-  const [searchDestination, setSearchDestination] = useState('')
+  const [searchOrigin, setSearchOrigin] = useState<Location | null>(null)
+  const [searchDestination, setSearchDestination] = useState<Location | null>(null)
   const [rides, setRides] = useState<RideWithDriver[]>([])
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
@@ -97,11 +103,11 @@ export default function HomePage({
         .gt('departure_time', new Date().toISOString())
         .order('departure_time', { ascending: true })
 
-      if (searchOrigin) {
-        query = query.ilike('origin_name', `%${searchOrigin}%`)
+      if (searchOrigin?.name) {
+        query = query.ilike('origin_name', `%${searchOrigin.name}%`)
       }
-      if (searchDestination) {
-        query = query.ilike('destination_name', `%${searchDestination}%`)
+      if (searchDestination?.name) {
+        query = query.ilike('destination_name', `%${searchDestination.name}%`)
       }
 
       const { data, error: searchError } = await withTimeout(query.limit(50), 15000)
@@ -187,24 +193,18 @@ export default function HomePage({
           <Card className="shadow-lg">
             <CardContent className="p-4">
               <form onSubmit={handleSearch} className="space-y-3">
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-coral-500" />
-                  <Input
-                    placeholder="Leaving from..."
-                    value={searchOrigin}
-                    onChange={(e) => setSearchOrigin(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-destructive" />
-                  <Input
-                    placeholder="Going to..."
-                    value={searchDestination}
-                    onChange={(e) => setSearchDestination(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
+                <LocationPicker
+                  value={searchOrigin}
+                  onChange={setSearchOrigin}
+                  placeholder="Leaving from..."
+                  markerColor="pickup"
+                />
+                <LocationPicker
+                  value={searchDestination}
+                  onChange={setSearchDestination}
+                  placeholder="Going to..."
+                  markerColor="dropoff"
+                />
                 <Button type="submit" className="w-full" size="lg" disabled={searching}>
                   {searching ? (
                     <>
