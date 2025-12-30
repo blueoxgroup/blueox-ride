@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LocationPicker } from '@/components/LocationPicker'
+import { RidesMapView } from '@/components/RidesMapView'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
-import { Search, Calendar, Users, Star, Filter, X } from 'lucide-react'
+import { Search, Calendar, Users, Star, Filter, X, Map, Route } from 'lucide-react'
 
 interface Location {
   lat: number
@@ -23,12 +24,14 @@ interface RideWithDriver extends Ride {
 }
 
 export default function SearchPage() {
+  const navigate = useNavigate()
   const [origin, setOrigin] = useState<Location | null>(null)
   const [destination, setDestination] = useState<Location | null>(null)
   const [date, setDate] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [minSeats, setMinSeats] = useState('1')
   const [showFilters, setShowFilters] = useState(false)
+  const [showMapView, setShowMapView] = useState(false)
   const [rides, setRides] = useState<RideWithDriver[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
@@ -84,6 +87,27 @@ export default function SearchPage() {
   }
 
   const hasActiveFilters = origin || destination || date || maxPrice || minSeats !== '1'
+
+  // Handle ride selection from map
+  const handleRideSelect = (rideId: string) => {
+    setShowMapView(false)
+    navigate(`/rides/${rideId}`)
+  }
+
+  // Prepare rides data for map view
+  const ridesForMap = rides.map(ride => ({
+    id: ride.id,
+    origin_name: ride.origin_name,
+    origin_lat: ride.origin_lat || 0,
+    origin_lng: ride.origin_lng || 0,
+    destination_name: ride.destination_name,
+    destination_lat: ride.destination_lat || 0,
+    destination_lng: ride.destination_lng || 0,
+    departure_time: ride.departure_time,
+    price: ride.price,
+    available_seats: ride.available_seats,
+    driver_name: ride.driver_name,
+  }))
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -208,27 +232,150 @@ export default function SearchPage() {
             </div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-3">
-                {rides.length} ride{rides.length !== 1 ? 's' : ''} found
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-muted-foreground">
+                  {rides.length} ride{rides.length !== 1 ? 's' : ''} found
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMapView(true)}
+                  className="flex items-center gap-1"
+                >
+                  <Map className="w-4 h-4" />
+                  View on Map
+                </Button>
+              </div>
               <div className="space-y-3">
                 {rides.map((ride) => (
-                  <RideCard key={ride.id} ride={ride} />
+                  <RideCard key={ride.id} ride={ride} userOrigin={origin} userDestination={destination} />
                 ))}
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* Map View Modal */}
+      <RidesMapView
+        isOpen={showMapView}
+        onClose={() => setShowMapView(false)}
+        rides={ridesForMap}
+        userOrigin={origin}
+        userDestination={destination}
+        onRideSelect={handleRideSelect}
+      />
     </div>
   )
 }
 
-function RideCard({ ride }: { ride: RideWithDriver }) {
+// Calculate distance between two points in km using Haversine formula
+function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371 // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
+}
+
+// Check if user's route is "along the way" of the driver's route
+function isAlongTheWay(
+  ride: RideWithDriver,
+  userOrigin: Location | null,
+  userDestination: Location | null
+): { match: boolean; type: 'exact' | 'origin' | 'destination' | 'partial' | 'none' } {
+  if (!userOrigin || !userDestination || !ride.origin_lat || !ride.destination_lat) {
+    return { match: false, type: 'none' }
+  }
+
+  const THRESHOLD_KM = 5 // Within 5km is considered "along the way"
+
+  const originToRideOrigin = getDistance(userOrigin.lat, userOrigin.lng, ride.origin_lat, ride.origin_lng || 0)
+  const destToRideDest = getDistance(userDestination.lat, userDestination.lng, ride.destination_lat, ride.destination_lng || 0)
+
+  // Exact match - both origin and destination are close
+  if (originToRideOrigin < THRESHOLD_KM && destToRideDest < THRESHOLD_KM) {
+    return { match: true, type: 'exact' }
+  }
+
+  // Same origin, different destination (user can get dropped off along the way)
+  if (originToRideOrigin < THRESHOLD_KM && destToRideDest >= THRESHOLD_KM) {
+    // Check if user's destination is between ride's origin and destination
+    const rideDistance = getDistance(ride.origin_lat, ride.origin_lng || 0, ride.destination_lat, ride.destination_lng || 0)
+    const userDestToRideRoute = Math.min(
+      getDistance(userDestination.lat, userDestination.lng, ride.origin_lat, ride.origin_lng || 0),
+      getDistance(userDestination.lat, userDestination.lng, ride.destination_lat, ride.destination_lng || 0)
+    )
+    if (userDestToRideRoute < rideDistance * 0.3) { // Within 30% of route distance
+      return { match: true, type: 'origin' }
+    }
+  }
+
+  // Different origin, same destination (user can be picked up along the way)
+  if (originToRideOrigin >= THRESHOLD_KM && destToRideDest < THRESHOLD_KM) {
+    const rideDistance = getDistance(ride.origin_lat, ride.origin_lng || 0, ride.destination_lat, ride.destination_lng || 0)
+    const userOriginToRideRoute = Math.min(
+      getDistance(userOrigin.lat, userOrigin.lng, ride.origin_lat, ride.origin_lng || 0),
+      getDistance(userOrigin.lat, userOrigin.lng, ride.destination_lat, ride.destination_lng || 0)
+    )
+    if (userOriginToRideRoute < rideDistance * 0.3) {
+      return { match: true, type: 'destination' }
+    }
+  }
+
+  // Check if user's journey is roughly on the same route
+  // User going in same direction but starting/ending at different points
+  if (originToRideOrigin < THRESHOLD_KM * 3 && destToRideDest < THRESHOLD_KM * 3) {
+    return { match: true, type: 'partial' }
+  }
+
+  return { match: false, type: 'none' }
+}
+
+interface RideCardProps {
+  ride: RideWithDriver
+  userOrigin: Location | null
+  userDestination: Location | null
+}
+
+function RideCard({ ride, userOrigin, userDestination }: RideCardProps) {
+  const routeMatch = isAlongTheWay(ride, userOrigin, userDestination)
+
   return (
     <Link to={`/rides/${ride.id}`}>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4">
+          {/* Route Match Badge */}
+          {routeMatch.match && (
+            <div className="mb-2">
+              {routeMatch.type === 'exact' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  <Route className="w-3 h-3" />
+                  Perfect match
+                </span>
+              ) : routeMatch.type === 'origin' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  <Route className="w-3 h-3" />
+                  Same pickup, can drop you off along the way
+                </span>
+              ) : routeMatch.type === 'destination' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  <Route className="w-3 h-3" />
+                  Can pick you up along the way
+                </span>
+              ) : routeMatch.type === 'partial' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                  <Route className="w-3 h-3" />
+                  Similar route
+                </span>
+              ) : null}
+            </div>
+          )}
+
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">

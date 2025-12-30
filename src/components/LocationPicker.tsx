@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { MapLocationPicker } from './MapLocationPicker'
-import { MapPin, Loader2, X, Map } from 'lucide-react'
+import { MapPin, Loader2, X, Map, Navigation } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Location {
@@ -46,8 +46,65 @@ export function LocationPicker({
   const [loading, setLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMapPicker, setShowMapPicker] = useState(false)
+  const [gettingLocation, setGettingLocation] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reverse geocode for current location
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      if (!response.ok) throw new Error('Reverse geocoding failed')
+      const data = await response.json()
+
+      if (data.address) {
+        const parts: string[] = []
+        if (data.address.road) parts.push(data.address.road)
+        if (data.address.suburb) parts.push(data.address.suburb)
+        const city = data.address.city || data.address.town || data.address.village
+        if (city) parts.push(city)
+        if (parts.length > 0) return parts.join(', ')
+      }
+      return data.display_name?.split(',').slice(0, 2).join(',') || 'Current location'
+    } catch {
+      return 'Current location'
+    }
+  }
+
+  // Get user's current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser')
+      return
+    }
+
+    setGettingLocation(true)
+    setSuggestions([])
+    setShowDropdown(false)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        const name = await reverseGeocode(latitude, longitude)
+        setInput(name)
+        onChange({ lat: latitude, lng: longitude, name })
+        setGettingLocation(false)
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        setGettingLocation(false)
+        if (error.code === error.PERMISSION_DENIED) {
+          alert('Location access denied. Please enable location permissions.')
+        } else {
+          alert('Could not get your location. Please try again.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    )
+  }
 
   // Update input when value changes externally
   useEffect(() => {
@@ -199,6 +256,23 @@ export function LocationPicker({
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={getCurrentLocation}
+            disabled={gettingLocation}
+            className={cn(
+              'flex-shrink-0 w-10 h-10 rounded-md border flex items-center justify-center',
+              'bg-background hover:bg-muted transition-colors',
+              markerColor === 'pickup' ? 'border-coral-200 text-coral-500' : 'border-navy-200 text-navy-900'
+            )}
+            title="Use my current location"
+          >
+            {gettingLocation ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Navigation className="w-4 h-4" />
+            )}
+          </button>
           <button
             type="button"
             onClick={() => setShowMapPicker(true)}

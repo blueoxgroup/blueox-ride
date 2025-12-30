@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Button } from '@/components/ui/button'
-import { X, MapPin, Loader2, Check } from 'lucide-react'
+import { X, MapPin, Loader2, Check, Navigation } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import 'leaflet/dist/leaflet.css'
 
@@ -75,9 +75,43 @@ export function MapLocationPicker({
   )
   const [locationName, setLocationName] = useState<string>(initialLocation?.name || '')
   const [loading, setLoading] = useState(false)
+  const [gettingLocation, setGettingLocation] = useState(false)
 
   // Default center (Kampala, Uganda)
   const defaultCenter: [number, number] = [0.3476, 32.5825]
+
+  // Get user's current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser')
+      return
+    }
+
+    setGettingLocation(true)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setSelectedLocation({ lat: latitude, lng: longitude })
+        reverseGeocode(latitude, longitude)
+        setGettingLocation(false)
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        setGettingLocation(false)
+        if (error.code === error.PERMISSION_DENIED) {
+          alert('Location access denied. Please enable location permissions.')
+        } else {
+          alert('Could not get your location. Please try again.')
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    )
+  }
 
   const markerIcon = createIcon(markerColor === 'pickup' ? '#FF4040' : '#193153')
 
@@ -203,6 +237,21 @@ export function MapLocationPicker({
             </div>
           </div>
         )}
+
+        {/* Current location button */}
+        <button
+          type="button"
+          onClick={getCurrentLocation}
+          disabled={gettingLocation}
+          className="absolute bottom-36 right-4 z-[1000] bg-background shadow-lg rounded-full p-3 border hover:bg-muted transition-colors"
+          title="Use my current location"
+        >
+          {gettingLocation ? (
+            <Loader2 className="w-5 h-5 animate-spin text-coral-500" />
+          ) : (
+            <Navigation className="w-5 h-5 text-coral-500" />
+          )}
+        </button>
       </div>
 
       {/* Bottom panel */}
