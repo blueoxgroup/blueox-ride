@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MapView } from '@/components/MapView'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate, calculateBookingFee } from '@/lib/utils'
 import type { Ride, User, Booking, CarPhoto } from '@/types'
@@ -252,6 +253,28 @@ export default function RideDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Route Map */}
+          {ride.origin_lat && ride.origin_lng && ride.destination_lat && ride.destination_lng && (
+            <Card>
+              <CardContent className="p-0 overflow-hidden">
+                <MapView
+                  origin={{
+                    lat: ride.origin_lat,
+                    lng: ride.origin_lng,
+                    name: ride.origin_name,
+                  }}
+                  destination={{
+                    lat: ride.destination_lat,
+                    lng: ride.destination_lng,
+                    name: ride.destination_name,
+                  }}
+                  showRoute={true}
+                  height="200px"
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Car Details Card */}
           {(ride.car_brand || ride.car_model || ride.car_year || ride.car_photo) && (
