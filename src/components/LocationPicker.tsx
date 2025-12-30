@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
-import { MapPin, Loader2, X } from 'lucide-react'
+import { MapLocationPicker } from './MapLocationPicker'
+import { MapPin, Loader2, X, Map } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Location {
@@ -44,6 +45,7 @@ export function LocationPicker({
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([])
   const [loading, setLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showMapPicker, setShowMapPicker] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -90,7 +92,6 @@ export function LocationPicker({
       }
 
       const results: NominatimResult[] = await response.json()
-      console.log('Nominatim results:', results.length)
 
       setSuggestions(results)
       setShowDropdown(results.length > 0)
@@ -117,7 +118,7 @@ export function LocationPicker({
 
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(newValue)
-    }, 400) // Slightly longer debounce for Nominatim rate limits
+    }, 400)
   }
 
   // Get a shorter display name from the result
@@ -157,6 +158,12 @@ export function LocationPicker({
     })
   }
 
+  // Handle map selection
+  const handleMapSelect = (location: Location) => {
+    setInput(location.name)
+    onChange(location)
+  }
+
   // Clear location
   const handleClear = () => {
     setInput('')
@@ -167,50 +174,76 @@ export function LocationPicker({
   const iconColor = markerColor === 'pickup' ? 'text-coral-500' : 'text-navy-900'
 
   return (
-    <div ref={containerRef} className={cn('relative', className)}>
-      <div className="relative">
-        <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', iconColor)} />
-        <Input
-          value={input}
-          onChange={handleInputChange}
-          onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
-          placeholder={placeholder}
-          className="pl-10 pr-10"
-        />
-        {loading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
-        )}
-        {!loading && value && (
+    <>
+      <div ref={containerRef} className={cn('relative', className)}>
+        <div className="relative flex gap-2">
+          <div className="relative flex-1">
+            <MapPin className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', iconColor)} />
+            <Input
+              value={input}
+              onChange={handleInputChange}
+              onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+              placeholder={placeholder}
+              className="pl-10 pr-10"
+            />
+            {loading && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {!loading && value && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
             type="button"
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowMapPicker(true)}
+            className={cn(
+              'flex-shrink-0 w-10 h-10 rounded-md border flex items-center justify-center',
+              'bg-background hover:bg-muted transition-colors',
+              markerColor === 'pickup' ? 'border-coral-200 text-coral-500' : 'border-navy-200 text-navy-900'
+            )}
+            title="Select on map"
           >
-            <X className="w-4 h-4" />
+            <Map className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* Suggestions dropdown */}
+        {showDropdown && suggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-auto">
+            {suggestions.map((result) => (
+              <button
+                key={result.place_id}
+                type="button"
+                onClick={() => handleSelectPlace(result)}
+                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b last:border-b-0"
+              >
+                <p className="font-medium text-sm truncate">
+                  {getShortName(result)}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {getSecondaryText(result)}
+                </p>
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Suggestions dropdown */}
-      {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((result) => (
-            <button
-              key={result.place_id}
-              type="button"
-              onClick={() => handleSelectPlace(result)}
-              className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b last:border-b-0"
-            >
-              <p className="font-medium text-sm truncate">
-                {getShortName(result)}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {getSecondaryText(result)}
-              </p>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Map Picker Modal */}
+      <MapLocationPicker
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onSelect={handleMapSelect}
+        initialLocation={value}
+        title={markerColor === 'pickup' ? 'Select Pickup Location' : 'Select Drop-off Location'}
+        markerColor={markerColor}
+      />
+    </>
   )
 }
