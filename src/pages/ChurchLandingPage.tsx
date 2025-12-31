@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { getChurchCopy } from '@/config/churchCopy'
+import { ChurchPageSEO } from '@/components/SEO'
 import HomePage from './HomePage'
 
 /**
@@ -15,11 +16,22 @@ export default function ChurchLandingPage() {
   const { churchSlug } = useParams<{ churchSlug: string }>()
   const copy = getChurchCopy(churchSlug)
 
+  // Only show church-specific SEO if it's a known church
+  const isKnownChurch = copy.churchName !== ''
+
   return (
-    <HomePage
-      heroHeadline={copy.heroHeadline}
-      heroSubtext={copy.heroSubtext}
-      loggedInPrompt={copy.loggedInPrompt}
-    />
+    <>
+      {isKnownChurch && (
+        <ChurchPageSEO
+          churchName={copy.churchName}
+          slug={copy.slug}
+        />
+      )}
+      <HomePage
+        heroHeadline={copy.heroHeadline}
+        heroSubtext={copy.heroSubtext}
+        loggedInPrompt={copy.loggedInPrompt}
+      />
+    </>
   )
 }

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { LocationPicker } from '@/components/LocationPicker'
+import { HomePageSEO } from '@/components/SEO'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
 import { Search, Calendar, Users, Star, Plus, ArrowRight, RefreshCw, Shield, Wallet, UserCheck } from 'lucide-react'
@@ -138,8 +139,10 @@ export default function HomePage({
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Hero Section */}
+    <>
+      <HomePageSEO />
+      <div className="min-h-screen bg-background pb-24">
+        {/* Hero Section */}
       <div className="bg-gradient-to-b from-navy-900 to-navy-800 pt-8 pb-10 px-4">
         <div className="max-w-lg mx-auto">
           {/* Header with Logo */}
@@ -389,7 +392,8 @@ export default function HomePage({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RegisterPageSEO } from '@/components/SEO'
 import { useToast } from '@/hooks/use-toast'
 
 export default function RegisterPage() {
@@ -61,17 +62,19 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-navy-50 to-white">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <img
-            src="/assets/logo.png"
-            alt="Blue OX Rides"
-            className="mx-auto mb-2 w-20 h-20 object-contain"
-          />
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Join Blue OX Rides and start traveling together</CardDescription>
-        </CardHeader>
+    <>
+      <RegisterPageSEO />
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-navy-50 to-white">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <img
+              src="/assets/logo.png"
+              alt="Blue OX Rides"
+              className="mx-auto mb-2 w-20 h-20 object-contain"
+            />
+            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+            <CardDescription>Join Blue OX Rides and start traveling together</CardDescription>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -131,14 +134,15 @@ export default function RegisterPage() {
             By signing up, you agree to our Terms of Service and Privacy Policy.
           </p>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
-            <Link to="/login" className="text-primary font-medium hover:underline">
-              Sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="mt-6 text-center text-sm">
+              <span className="text-muted-foreground">Already have an account? </span>
+              <Link to="/login" className="text-primary font-medium hover:underline">
+                Sign in
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }

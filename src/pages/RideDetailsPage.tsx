@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MapView } from '@/components/MapView'
+import { RideDetailsSEO } from '@/components/SEO'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate, calculateBookingFee } from '@/lib/utils'
 import type { Ride, User, Booking, CarPhoto } from '@/types'
@@ -193,20 +194,27 @@ export default function RideDetailsPage() {
   const showLoginToBook = !user && rideIsBookable
 
   return (
-    <div className="min-h-screen bg-background pb-40">
-      {/* Header */}
-      <div className="bg-navy-900 pt-12 pb-20 px-4">
-        <div className="max-w-lg mx-auto">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-white/80 hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            Back
-          </button>
-          <h1 className="text-xl font-semibold text-white">Ride Details</h1>
+    <>
+      <RideDetailsSEO
+        origin={ride.origin_name}
+        destination={ride.destination_name}
+        price={ride.price}
+        rideId={id || ''}
+      />
+      <div className="min-h-screen bg-background pb-40">
+        {/* Header */}
+        <div className="bg-navy-900 pt-12 pb-20 px-4">
+          <div className="max-w-lg mx-auto">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center text-white/80 hover:text-white mb-4"
+            >
+              <ArrowLeft className="w-5 h-5 mr-1" />
+              Back
+            </button>
+            <h1 className="text-xl font-semibold text-white">Ride Details</h1>
+          </div>
         </div>
-      </div>
 
       {/* Content */}
       <div className="px-4 -mt-12">
@@ -579,8 +587,9 @@ export default function RideDetailsPage() {
               Pay {formatCurrency(totalBookingFee)}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   )
 }

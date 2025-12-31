@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LoginPageSEO } from '@/components/SEO'
 import { useToast } from '@/hooks/use-toast'
 
 export default function LoginPage() {
@@ -47,8 +48,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-navy-50 to-white">
-      <Card className="w-full max-w-md">
+    <>
+      <LoginPageSEO />
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-navy-50 to-white">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <img
             src="/assets/logo.png"
@@ -95,8 +98,9 @@ export default function LoginPage() {
               Sign up
             </Link>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }

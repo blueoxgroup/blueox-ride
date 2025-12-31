@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LocationPicker } from '@/components/LocationPicker'
 import { RidesMapView } from '@/components/RidesMapView'
+import { SearchPageSEO } from '@/components/SEO'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
 import { Search, Calendar, Users, Star, Filter, X, Map, Route } from 'lucide-react'
@@ -110,11 +111,13 @@ export default function SearchPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="bg-navy-900 pt-12 pb-6 px-4">
-        <div className="max-w-lg mx-auto">
-          <h1 className="text-xl font-semibold text-white mb-4">Search Rides</h1>
+    <>
+      <SearchPageSEO />
+      <div className="min-h-screen bg-background pb-24">
+        {/* Header */}
+        <div className="bg-navy-900 pt-12 pb-6 px-4">
+          <div className="max-w-lg mx-auto">
+            <h1 className="text-xl font-semibold text-white mb-4">Search Rides</h1>
 
           {/* Main Search */}
           <div className="space-y-3">
@@ -256,16 +259,17 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Map View Modal */}
-      <RidesMapView
-        isOpen={showMapView}
-        onClose={() => setShowMapView(false)}
-        rides={ridesForMap}
-        userOrigin={origin}
-        userDestination={destination}
-        onRideSelect={handleRideSelect}
-      />
-    </div>
+        {/* Map View Modal */}
+        <RidesMapView
+          isOpen={showMapView}
+          onClose={() => setShowMapView(false)}
+          rides={ridesForMap}
+          userOrigin={origin}
+          userDestination={destination}
+          onRideSelect={handleRideSelect}
+        />
+      </div>
+    </>
   )
 }
 
