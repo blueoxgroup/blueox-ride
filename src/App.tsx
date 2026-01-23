@@ -15,6 +15,7 @@ import RideDetailsPage from '@/pages/RideDetailsPage'
 import PaymentPage from '@/pages/PaymentPage'
 import MyRidesPage from '@/pages/MyRidesPage'
 import SearchPage from '@/pages/SearchPage'
+import AdminChurchPayoutsPage from '@/pages/AdminChurchPayoutsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,16 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <MyRidesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin routes */}
+        <Route
+          path="/admin/church-payouts"
+          element={
+            <ProtectedRoute>
+              <AdminChurchPayoutsPage />
             </ProtectedRoute>
           }
         />

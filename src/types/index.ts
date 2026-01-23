@@ -10,6 +10,8 @@ export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 
 
 export type PaymentType = 'booking_fee' | 'refund_to_passenger' | 'refund_to_driver'
 
+export type CommissionStatus = 'pending' | 'paid'
+
 export interface User {
   id: string
   email: string
@@ -59,6 +61,21 @@ export interface CarPhoto {
   created_at: string
 }
 
+export interface Church {
+  id: string
+  slug: string
+  name: string
+  contact_email: string | null
+  contact_phone: string | null
+  mobile_money_number: string | null
+  mobile_money_name: string | null
+  is_active: boolean
+  total_commission_earned: number
+  total_commission_paid: number
+  created_at: string
+  updated_at: string
+}
+
 export interface Booking {
   id: string
   ride_id: string
@@ -68,8 +85,41 @@ export interface Booking {
   seats_booked: number
   booking_fee: number
   status: BookingStatus
+  church_id: string | null
+  church?: Church
   created_at: string
   updated_at: string
+}
+
+export interface ChurchCommission {
+  id: string
+  church_id: string
+  church?: Church
+  booking_id: string
+  booking?: Booking
+  ride_price: number
+  booking_fee: number
+  commission_amount: number
+  status: CommissionStatus
+  paid_at: string | null
+  paid_by: string | null
+  payment_reference: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface ChurchCommissionSummary {
+  id: string
+  slug: string
+  name: string
+  contact_email: string | null
+  mobile_money_number: string | null
+  mobile_money_name: string | null
+  is_active: boolean
+  total_bookings: number
+  total_earned: number
+  total_paid: number
+  total_pending: number
 }
 
 export interface Payment {

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { MapView } from '@/components/MapView'
 import { RideDetailsSEO } from '@/components/SEO'
 import { useToast } from '@/hooks/use-toast'
+import { getStoredChurchId } from '@/hooks/useChurchAttribution'
 import { formatCurrency, formatDate, calculateBookingFee } from '@/lib/utils'
 import type { Ride, User, Booking, CarPhoto } from '@/types'
 import { ArrowLeft, Calendar, Users, Star, Phone, MessageCircle, Clock, Info, Car } from 'lucide-react'
@@ -120,6 +121,9 @@ export default function RideDetailsPage() {
 
     const bookingFee = calculateBookingFee(ride.price) * seats
 
+    // Get church attribution if user came from a church landing page
+    const churchId = getStoredChurchId()
+
     // Create booking
     const { data: bookingData, error: bookingError } = await supabase
       .from('bookings')
@@ -129,6 +133,7 @@ export default function RideDetailsPage() {
         seats_booked: seats,
         booking_fee: bookingFee,
         status: 'pending_payment',
+        church_id: churchId, // Will be null if user didn't come from a church page
       })
       .select()
       .single()
