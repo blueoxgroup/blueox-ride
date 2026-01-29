@@ -7,10 +7,10 @@ import { readFileSync } from 'fs'
 const SUPABASE_URL = 'https://zwuoewhxqndmutbfyzka.supabase.co'
 
 // Read service role key from environment or prompt user
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY
 
 if (!SERVICE_ROLE_KEY) {
-  console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable not set')
+  console.error('❌ Error: SUPABASE_SECRET_KEY environment variable not set')
   console.error('\nPlease run this migration manually:')
   console.error('1. Go to: https://supabase.com/dashboard/project/zwuoewhxqndmutbfyzka/sql/new')
   console.error('2. Copy the contents of: supabase/add-car-details-migration.sql')

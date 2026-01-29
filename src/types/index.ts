@@ -184,14 +184,10 @@ export interface InitiatePaymentRequest {
   phone_number: string
 }
 
-export interface PandoraWebhookPayload {
-  reference: string
-  transaction_id: string
-  status: 'successful' | 'failed' | 'pending'
-  amount: number
-  currency: string
-  phone_number: string
-  metadata?: Record<string, unknown>
+export interface PesapalIpnPayload {
+  OrderNotificationType: 'IPNCHANGE' | 'CALLBACKURL'
+  OrderTrackingId: string
+  OrderMerchantReference: string
 }
 
 // Google Maps types

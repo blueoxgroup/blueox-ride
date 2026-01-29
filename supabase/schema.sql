@@ -126,9 +126,9 @@ CREATE TABLE public.payments (
   payment_type payment_type NOT NULL,
   status payment_status DEFAULT 'pending',
 
-  -- Pandora payment details
-  pandora_reference TEXT UNIQUE, -- Our reference sent to Pandora
-  pandora_transaction_id TEXT, -- Pandora's transaction ID
+  -- Payment provider details
+  pandora_reference TEXT UNIQUE, -- Merchant reference for payment provider
+  pandora_transaction_id TEXT, -- Provider order tracking / confirmation ID
   phone_number TEXT NOT NULL, -- Mobile money phone number
 
   -- Error handling

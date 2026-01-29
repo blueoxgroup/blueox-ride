@@ -1,6 +1,6 @@
 // Blue Ox - Initiate Payment Edge Function
-// This function handles payment initiation with Pandora Mobile Money API
-// Documentation: https://pandorapayments.com/documentation
+// This function handles payment initiation with Pesapal API 3.0
+// Documentation: https://developer.pesapal.com/how-to-integrate/e-commerce/api-30-json/submitorderrequest
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -15,8 +15,28 @@ interface PaymentRequest {
   phone_number: string
 }
 
-// Pandora API configuration
-const PANDORA_BASE_URL = 'https://api.pandorapayments.com/v1'
+const PESAPAL_BASE_URL = Deno.env.get('PESAPAL_BASE_URL') || 'https://pay.pesapal.com/v3'
+
+async function getPesapalToken(consumerKey: string, consumerSecret: string) {
+  const response = await fetch(`${PESAPAL_BASE_URL}/api/Auth/RequestToken`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      consumer_key: consumerKey,
+      consumer_secret: consumerSecret,
+    }),
+  })
+
+  const result = await response.json()
+  if (!response.ok || !result?.token) {
+    throw new Error(result?.message || 'Failed to authenticate with Pesapal')
+  }
+
+  return result.token as string
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -25,35 +45,47 @@ serve(async (req) => {
   }
 
   try {
-    // Get auth token from request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing authorization header')
     }
 
-    // Initialize Supabase client with service role for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const pandoraApiKey = Deno.env.get('PANDORA_API_KEY')!
+    const supabaseSecretKey = Deno.env.get('SUPABASE_SECRET_KEY')!
+    const supabasePublishableKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
+    const pesapalConsumerKey = Deno.env.get('PESAPAL_CONSUMER_KEY')!
+    const pesapalConsumerSecret = Deno.env.get('PESAPAL_CONSUMER_SECRET')!
+    const pesapalIpnId = Deno.env.get('PESAPAL_IPN_ID')!
 
-    if (!pandoraApiKey) {
-      throw new Error('PANDORA_API_KEY environment variable not configured')
+    if (!pesapalConsumerKey || !pesapalConsumerSecret) {
+      throw new Error('Pesapal credentials are not configured')
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    if (!pesapalIpnId) {
+      throw new Error('PESAPAL_IPN_ID is not configured')
+    }
 
-    // Create client with user's auth token
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    const appBaseUrl = Deno.env.get('APP_BASE_URL') || req.headers.get('origin') || req.headers.get('referer')
+    if (!appBaseUrl) {
+      throw new Error('APP_BASE_URL is not configured')
+    }
+    let normalizedBaseUrl = appBaseUrl
+    try {
+      normalizedBaseUrl = new URL(appBaseUrl).origin
+    } catch {
+      normalizedBaseUrl = appBaseUrl.replace(/\/$/, '')
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey)
+    const supabaseClient = createClient(supabaseUrl, supabasePublishableKey, {
       global: { headers: { Authorization: authHeader } }
     })
 
-    // Get current user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     if (userError || !user) {
       throw new Error('Unauthorized')
     }
 
-    // Parse request body
     const { booking_id, phone_number }: PaymentRequest = await req.json()
 
     if (!booking_id || !phone_number) {
@@ -67,17 +99,6 @@ serve(async (req) => {
       throw new Error('Invalid phone number format. Use Uganda format: 07XXXXXXXX or 256XXXXXXXXX')
     }
 
-    // Normalize phone number to 256XXXXXXXXX format (Pandora requires this format)
-    let normalizedPhone = cleanPhone
-    if (normalizedPhone.startsWith('+256')) {
-      normalizedPhone = normalizedPhone.substring(1) // Remove the +
-    } else if (normalizedPhone.startsWith('0')) {
-      normalizedPhone = '256' + normalizedPhone.substring(1)
-    } else if (!normalizedPhone.startsWith('256')) {
-      normalizedPhone = '256' + normalizedPhone
-    }
-
-    // Get booking details
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .select(`
@@ -98,28 +119,22 @@ serve(async (req) => {
       throw new Error('Booking not found')
     }
 
-    // Verify this is the passenger's booking
     if (booking.passenger_id !== user.id) {
       throw new Error('You can only pay for your own bookings')
     }
 
-    // Check booking status
     if (booking.status !== 'pending_payment') {
       throw new Error(`Cannot process payment. Booking status is: ${booking.status}`)
     }
 
-    // Check if ride hasn't departed
     if (new Date(booking.ride.departure_time) < new Date()) {
       throw new Error('Cannot pay for a ride that has already departed')
     }
 
-    // Calculate 10% booking fee
     const bookingFee = Math.ceil(booking.ride.price * 0.1 * booking.seats_booked)
 
-    // Generate unique payment reference
-    const paymentReference = `BLUEOX${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    const merchantReference = `BO-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
 
-    // Create payment record
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
       .insert({
@@ -128,8 +143,8 @@ serve(async (req) => {
         amount: bookingFee,
         payment_type: 'booking_fee',
         status: 'pending',
-        pandora_reference: paymentReference,
-        phone_number: normalizedPhone,
+        pandora_reference: merchantReference,
+        phone_number: cleanPhone,
       })
       .select()
       .single()
@@ -139,7 +154,6 @@ serve(async (req) => {
       throw new Error('Failed to create payment record')
     }
 
-    // Update booking fee if needed
     if (booking.booking_fee !== bookingFee) {
       await supabaseAdmin
         .from('bookings')
@@ -147,92 +161,66 @@ serve(async (req) => {
         .eq('id', booking_id)
     }
 
-    // Build callback URL for Pandora webhook
-    const callbackUrl = `${supabaseUrl}/functions/v1/pandora-webhook`
+    const token = await getPesapalToken(pesapalConsumerKey, pesapalConsumerSecret)
 
-    // Prepare Pandora API request
-    // Documentation: https://pandorapayments.com/documentation
-    const pandoraPayload = {
+    const callbackUrl = `${normalizedBaseUrl.replace(/\/$/, '')}/bookings/${booking_id}/pay`
+    const orderPayload = {
+      id: merchantReference,
+      currency: 'UGX',
       amount: bookingFee,
-      transaction_ref: paymentReference,
-      contact: normalizedPhone,
-      narrative: `Blue Ox ride booking: ${booking.ride.origin_name} to ${booking.ride.destination_name}`,
+      description: `Blue Ox booking fee: ${booking.ride.origin_name} → ${booking.ride.destination_name}`,
       callback_url: callbackUrl,
+      notification_id: pesapalIpnId,
+      billing_address: {
+        phone_number: cleanPhone,
+        email_address: user.email,
+        country_code: 'UG',
+        first_name: user.user_metadata?.full_name || '',
+        last_name: '',
+      },
     }
 
-    console.log('Initiating Pandora payment:', {
-      reference: paymentReference,
-      amount: bookingFee,
-      contact: normalizedPhone,
-      callback_url: callbackUrl,
-    })
-
-    // Make request to Pandora API
-    const pandoraResponse = await fetch(`${PANDORA_BASE_URL}/transactions/mobile-money`, {
+    const pesapalResponse = await fetch(`${PESAPAL_BASE_URL}/api/Transactions/SubmitOrderRequest`, {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'X-API-Key': pandoraApiKey,
+        'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify(pandoraPayload),
+      body: JSON.stringify(orderPayload),
     })
 
-    // Get response text first to handle non-JSON responses
-    const responseText = await pandoraResponse.text()
-
-    let pandoraResult
-    try {
-      pandoraResult = JSON.parse(responseText)
-    } catch (parseError) {
-      console.error('Pandora API returned non-JSON response:', responseText.substring(0, 500))
-
-      // Update payment status to failed
+    const pesapalResult = await pesapalResponse.json()
+    if (!pesapalResponse.ok || pesapalResult?.status !== '200') {
       await supabaseAdmin
         .from('payments')
         .update({
           status: 'failed',
-          error_message: 'Payment service unavailable. Please try again.',
+          error_message: pesapalResult?.message || 'Pesapal payment initiation failed',
         })
         .eq('id', payment.id)
 
-      throw new Error('Payment service temporarily unavailable. Please try again.')
+      throw new Error(pesapalResult?.message || 'Pesapal payment initiation failed')
     }
 
-    console.log('Pandora API response:', pandoraResult)
-
-    // Check if request was successful
-    if (!pandoraResult.success) {
-      // Update payment status to failed
-      await supabaseAdmin
-        .from('payments')
-        .update({
-          status: 'failed',
-          error_message: pandoraResult.messages?.join(', ') || 'Pandora API error',
-        })
-        .eq('id', payment.id)
-
-      throw new Error(pandoraResult.messages?.join(', ') || 'Payment initiation failed')
-    }
-
-    // Update payment with processing status
     await supabaseAdmin
       .from('payments')
       .update({
         status: 'processing',
-        // Store any transaction ID from Pandora if available
-        pandora_transaction_id: pandoraResult.data?.[0]?.transaction_reference || paymentReference,
+        pandora_transaction_id: pesapalResult.order_tracking_id,
       })
       .eq('id', payment.id)
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Payment initiated. Please check your phone to confirm the mobile money transaction.',
+        message: 'Payment initiated. Redirecting to Pesapal.',
         payment_id: payment.id,
-        reference: paymentReference,
+        reference: merchantReference,
+        order_tracking_id: pesapalResult.order_tracking_id,
+        redirect_url: pesapalResult.redirect_url,
         amount: bookingFee,
-        phone_number: normalizedPhone,
-        network: pandoraResult.data?.[0]?.network || 'Mobile Money',
+        phone_number: cleanPhone,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

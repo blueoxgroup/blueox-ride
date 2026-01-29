@@ -11,11 +11,11 @@ const __dirname = dirname(__filename)
 
 // Read environment variables
 const supabaseUrl = process.env.VITE_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Error: Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
-  console.error('Please set SUPABASE_SERVICE_ROLE_KEY in your .env file')
+  console.error('Error: Missing VITE_SUPABASE_URL or SUPABASE_SECRET_KEY environment variables')
+  console.error('Please set SUPABASE_SECRET_KEY in your .env file')
   process.exit(1)
 }
 

@@ -28,6 +28,7 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true)
   const [initiating, setInitiating] = useState(false)
   const [checking, setChecking] = useState(false)
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 
   const fetchInProgress = useRef(false)
 
@@ -242,7 +243,7 @@ export default function PaymentPage() {
       if (data.success) {
         toast({
           title: 'Payment initiated',
-          description: 'Check your phone to approve the mobile money transaction.',
+          description: 'Redirecting you to Pesapal to complete payment.',
           variant: 'success',
         })
 
@@ -255,6 +256,11 @@ export default function PaymentPage() {
 
         if (paymentData) {
           setPayment(paymentData as Payment)
+        }
+
+        if (data.redirect_url) {
+          setRedirectUrl(data.redirect_url)
+          window.location.assign(data.redirect_url)
         }
       } else {
         throw new Error(data.error || 'Payment initiation failed')
@@ -361,7 +367,7 @@ export default function PaymentPage() {
                   <div>
                     <p className="font-medium text-yellow-800">Processing Payment</p>
                     <p className="text-sm text-yellow-700">
-                      Waiting for confirmation on {payment.phone_number}
+                      Waiting for Pesapal confirmation on {payment.phone_number}
                     </p>
                   </div>
                 </div>
@@ -403,8 +409,8 @@ export default function PaymentPage() {
                     <Smartphone className="w-5 h-5 text-navy-900" />
                   </div>
                   <div>
-                    <p className="font-medium">Mobile Money</p>
-                    <p className="text-sm text-muted-foreground">MTN, Airtel Money</p>
+                    <p className="font-medium">Pesapal Checkout</p>
+                    <p className="text-sm text-muted-foreground">Mobile money and cards</p>
                   </div>
                 </div>
 
@@ -419,7 +425,7 @@ export default function PaymentPage() {
                       onChange={(e) => setPhoneNumber(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Enter the number to receive the payment prompt
+                      Enter a number for payment confirmation and receipts
                     </p>
                   </div>
 
@@ -431,6 +437,15 @@ export default function PaymentPage() {
                   >
                     Pay {formatCurrency(booking.booking_fee)}
                   </Button>
+                  {redirectUrl && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.location.assign(redirectUrl)}
+                    >
+                      Continue to Pesapal
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -440,8 +455,8 @@ export default function PaymentPage() {
           <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-2">What happens next?</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>You'll receive a payment prompt on your phone</li>
-              <li>Enter your PIN to confirm the payment</li>
+              <li>You'll be redirected to Pesapal to choose a payment method</li>
+              <li>Complete the payment and return to this page</li>
               <li>Once confirmed, you'll get the driver's contact</li>
               <li>Pay {formatCurrency(booking.ride.price - booking.booking_fee / booking.seats_booked)} per seat in cash to the driver after the ride</li>
             </ol>

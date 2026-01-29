@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zwuoewhxqndmutbfyzka.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3dW9ld2h4cW5kbXV0YmZ5emthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MzY0NDMsImV4cCI6MjA4MTIxMjQ0M30.zTeAXZNfgcYRQevkj6W0vSGqcVkLuFHZ5aePh_bFfT0'
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_J7IptpekQyw7IaT1iPNZOg_8NHPZO-m'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,

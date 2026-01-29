@@ -15,7 +15,7 @@ A mobile-first Progressive Web App (PWA) for carpooling in Uganda and East Afric
 - **Frontend**: React + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Backend**: Supabase (Auth, PostgreSQL, Edge Functions, Storage)
-- **Payments**: Pandora Mobile Money API
+- **Payments**: Pesapal API 3.0
 - **Maps**: Google Maps (Places Autocomplete)
 
 ## Payment Flow
@@ -60,8 +60,13 @@ npm run dev
 
 ```env
 VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SECRET_KEY=your_supabase_secret_key
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+PESAPAL_CONSUMER_KEY=your_pesapal_consumer_key
+PESAPAL_CONSUMER_SECRET=your_pesapal_consumer_secret
+PESAPAL_IPN_ID=your_pesapal_ipn_id
+APP_BASE_URL=https://your-app-domain.com
 ```
 
 ## Database Setup
@@ -72,15 +77,15 @@ Run the SQL schema in `supabase/schema.sql` in your Supabase dashboard.
 
 Deploy the Edge Functions in `supabase/functions/`:
 
-- `initiate-payment`: Initiates mobile money payment
-- `pandora-webhook`: Handles payment notifications
+- `initiate-payment`: Initiates Pesapal payment
+- `pesapal-ipn`: Handles payment notifications (IPN)
 - `process-refund`: Processes refunds on cancellation
 
-### Pandora Webhook URL
+### Pesapal IPN URL
 
-Configure this URL in your Pandora dashboard:
+Register this URL in Pesapal IPN settings:
 ```
-https://zwuoewhxqndmutbfyzka.supabase.co/functions/v1/pandora-webhook
+https://zwuoewhxqndmutbfyzka.supabase.co/functions/v1/pesapal-ipn
 ```
 
 ## Deployment
@@ -113,7 +118,7 @@ supabase/
 
 - [ ] Add admin dashboard
 - [ ] Implement email notifications
-- [ ] Add SMS notifications via Pandora
+- [ ] Add SMS notifications via payment provider
 - [ ] Implement recurring rides
 - [ ] Add ride sharing preferences (music, smoking, etc.)
 - [ ] Implement price suggestions based on distance
