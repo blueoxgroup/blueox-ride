@@ -8,14 +8,15 @@ import HomePage from './HomePage'
 /**
  * Church-specific landing page wrapper
  *
- * Renders the standard HomePage with customized hero copy based on the church slug.
- * All BlueOx branding, functionality, and UI remains unchanged.
+ * Renders the standard HomePage with customized hero copy and brand colors
+ * based on the church slug. Each church gets their own themed experience
+ * while maintaining BlueOx functionality.
  *
  * When a user visits this page, we store the church attribution in localStorage.
  * This attribution is used to credit the church when the user books a ride.
  *
  * Routes: /watoto, /worshipharvest, /holycity, /miraclecenter, /phaneroo
- * Unknown slugs fall back to default BlueOx copy.
+ * Unknown slugs fall back to default BlueOx branding.
  */
 export default function ChurchLandingPage() {
   const { churchSlug } = useParams<{ churchSlug: string }>()
@@ -44,6 +45,8 @@ export default function ChurchLandingPage() {
         heroHeadline={copy.heroHeadline}
         heroSubtext={copy.heroSubtext}
         loggedInPrompt={copy.loggedInPrompt}
+        brandColors={isKnownChurch ? copy.brandColors : undefined}
+        churchName={isKnownChurch ? copy.churchName : undefined}
       />
     </>
   )

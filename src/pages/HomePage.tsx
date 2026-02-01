@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, withTimeout, RequestTimeoutError } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,7 @@ import { HomePageSEO } from '@/components/SEO'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Ride } from '@/types'
 import { Search, Calendar, Users, Star, Plus, ArrowRight, RefreshCw, Shield, Wallet, UserCheck } from 'lucide-react'
+import type { ChurchBrandColors } from '@/config/churchCopy'
 
 interface Location {
   lat: number
@@ -29,12 +30,17 @@ interface HomePageProps {
   heroHeadline?: string
   heroSubtext?: string
   loggedInPrompt?: string
+  // Optional brand colors for church theming
+  brandColors?: ChurchBrandColors
+  churchName?: string
 }
 
 export default function HomePage({
   heroHeadline = 'Travel together, pay less',
   heroSubtext = 'Find trusted drivers going your way across Uganda',
   loggedInPrompt = 'Where are you heading today?',
+  brandColors,
+  churchName,
 }: HomePageProps = {}) {
   const { user, profile } = useAuth()
   const [searchOrigin, setSearchOrigin] = useState<Location | null>(null)
@@ -44,6 +50,30 @@ export default function HomePage({
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const hasFetched = useRef(false)
+
+  // Memoize dynamic styles based on brand colors
+  const brandStyles = useMemo(() => {
+    if (!brandColors) {
+      return {
+        heroGradient: 'bg-gradient-to-b from-navy-900 to-navy-800',
+        accentBg: 'bg-coral-100',
+        accentText: 'text-coral-500',
+        accentBorder: 'border-coral-200',
+        valuePropBg: 'bg-coral-50',
+        stepBg: 'bg-coral-500',
+        isCustom: false,
+      }
+    }
+    return {
+      heroGradient: '', // Will use inline style
+      accentBg: '', // Will use inline style
+      accentText: '', // Will use inline style
+      accentBorder: '', // Will use inline style
+      valuePropBg: '', // Will use inline style
+      stepBg: '', // Will use inline style
+      isCustom: true,
+    }
+  }, [brandColors])
 
   const fetchRides = useCallback(async () => {
     setLoading(true)
@@ -143,7 +173,12 @@ export default function HomePage({
       <HomePageSEO />
       <div className="min-h-screen bg-background pb-24">
         {/* Hero Section */}
-      <div className="bg-gradient-to-b from-navy-900 to-navy-800 pt-8 pb-10 px-4">
+      <div 
+        className={`pt-8 pb-10 px-4 ${!brandStyles.isCustom ? brandStyles.heroGradient : ''}`}
+        style={brandStyles.isCustom && brandColors ? {
+          background: `linear-gradient(to bottom, ${brandColors.primary}, ${brandColors.primaryDark})`,
+        } : undefined}
+      >
         <div className="max-w-lg mx-auto">
           {/* Header with Logo */}
           <div className="flex items-center justify-between mb-6">
@@ -153,7 +188,17 @@ export default function HomePage({
                 alt="Blue OX Rides"
                 className="w-12 h-12 object-contain"
               />
-              <span className="text-white font-bold text-lg">Blue OX Rides</span>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-lg">Blue OX Rides</span>
+                {churchName && (
+                  <span 
+                    className="text-xs font-medium"
+                    style={{ color: brandColors?.heroSubtext || '#ffe0e0' }}
+                  >
+                    for {churchName}
+                  </span>
+                )}
+              </div>
             </div>
             {user ? (
               <Link to="/profile">
@@ -174,18 +219,37 @@ export default function HomePage({
           <div className="text-center mb-6">
             {user ? (
               <div>
-                <p className="text-coral-100 text-sm mb-1">Welcome back,</p>
-                <h1 className="text-2xl font-bold text-white">
+                <p 
+                  className="text-sm mb-1"
+                  style={{ color: brandColors?.heroSubtext || '#ffe0e0' }}
+                >
+                  Welcome back,
+                </p>
+                <h1 
+                  className="text-2xl font-bold"
+                  style={{ color: brandColors?.heroText || '#ffffff' }}
+                >
                   {profile?.full_name?.split(' ')[0] || 'Traveler'}
                 </h1>
-                <p className="text-coral-100 mt-2">{loggedInPrompt}</p>
+                <p 
+                  className="mt-2"
+                  style={{ color: brandColors?.heroSubtext || '#ffe0e0' }}
+                >
+                  {loggedInPrompt}
+                </p>
               </div>
             ) : (
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2">
+                <h1 
+                  className="text-2xl font-bold mb-2"
+                  style={{ color: brandColors?.heroText || '#ffffff' }}
+                >
                   {heroHeadline}
                 </h1>
-                <p className="text-coral-100 text-base">
+                <p 
+                  className="text-base"
+                  style={{ color: brandColors?.heroSubtext || '#ffe0e0' }}
+                >
                   {heroSubtext}
                 </p>
               </div>
@@ -229,29 +293,73 @@ export default function HomePage({
 
       {/* Value Props - Only show to non-logged in users */}
       {!user && (
-        <div className="px-4 py-6 bg-coral-50 border-b">
+        <div 
+          className={`px-4 py-6 border-b ${!brandStyles.isCustom ? 'bg-coral-50' : ''}`}
+          style={brandStyles.isCustom && brandColors ? {
+            backgroundColor: brandColors.accentLight,
+          } : undefined}
+        >
           <div className="max-w-lg mx-auto">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
-                  <Wallet className="w-5 h-5 text-coral-500" />
+                <div 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${!brandStyles.isCustom ? 'bg-coral-100' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? {
+                    backgroundColor: `${brandColors.accent}20`,
+                  } : undefined}
+                >
+                  <Wallet 
+                    className={`w-5 h-5 ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                    style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                  />
                 </div>
                 <p className="text-xs font-medium text-navy-900">Save Money</p>
-                <p className="text-xs text-coral-500">Split travel costs</p>
+                <p 
+                  className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                >
+                  Split travel costs
+                </p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
-                  <UserCheck className="w-5 h-5 text-coral-500" />
+                <div 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${!brandStyles.isCustom ? 'bg-coral-100' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? {
+                    backgroundColor: `${brandColors.accent}20`,
+                  } : undefined}
+                >
+                  <UserCheck 
+                    className={`w-5 h-5 ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                    style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                  />
                 </div>
                 <p className="text-xs font-medium text-navy-900">Verified Users</p>
-                <p className="text-xs text-coral-500">Trusted community</p>
+                <p 
+                  className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                >
+                  Trusted community
+                </p>
               </div>
               <div>
-                <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center mx-auto mb-2">
-                  <Shield className="w-5 h-5 text-coral-500" />
+                <div 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${!brandStyles.isCustom ? 'bg-coral-100' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? {
+                    backgroundColor: `${brandColors.accent}20`,
+                  } : undefined}
+                >
+                  <Shield 
+                    className={`w-5 h-5 ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                    style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                  />
                 </div>
                 <p className="text-xs font-medium text-navy-900">Secure Pay</p>
-                <p className="text-xs text-coral-500">Mobile Money</p>
+                <p 
+                  className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                  style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                >
+                  Mobile Money
+                </p>
               </div>
             </div>
           </div>
@@ -263,10 +371,23 @@ export default function HomePage({
         <div className="max-w-lg mx-auto">
           <div className="flex gap-3">
             <Link to={user ? '/rides/create' : '/login'} state={!user ? { from: '/rides/create' } : undefined} className="flex-1">
-              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-coral-200">
+              <Card 
+                className={`hover:shadow-md transition-shadow border-2 border-transparent ${!brandStyles.isCustom ? 'hover:border-coral-200' : ''}`}
+                style={brandStyles.isCustom && brandColors ? {
+                  '--hover-border-color': `${brandColors.accent}40`,
+                } as React.CSSProperties : undefined}
+              >
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center">
-                    <Plus className="w-5 h-5 text-coral-500" />
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${!brandStyles.isCustom ? 'bg-coral-100' : ''}`}
+                    style={brandStyles.isCustom && brandColors ? {
+                      backgroundColor: `${brandColors.accent}20`,
+                    } : undefined}
+                  >
+                    <Plus 
+                      className={`w-5 h-5 ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                      style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                    />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Offer a Ride</p>
@@ -276,10 +397,23 @@ export default function HomePage({
               </Card>
             </Link>
             <Link to={user ? '/my-rides' : '/login'} state={!user ? { from: '/my-rides' } : undefined} className="flex-1">
-              <Card className="hover:shadow-md transition-shadow border-2 border-transparent hover:border-coral-200">
+              <Card 
+                className={`hover:shadow-md transition-shadow border-2 border-transparent ${!brandStyles.isCustom ? 'hover:border-coral-200' : ''}`}
+                style={brandStyles.isCustom && brandColors ? {
+                  '--hover-border-color': `${brandColors.accent}40`,
+                } as React.CSSProperties : undefined}
+              >
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-coral-100 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-coral-500" />
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${!brandStyles.isCustom ? 'bg-coral-100' : ''}`}
+                    style={brandStyles.isCustom && brandColors ? {
+                      backgroundColor: `${brandColors.accent}20`,
+                    } : undefined}
+                  >
+                    <Calendar 
+                      className={`w-5 h-5 ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                      style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                    />
                   </div>
                   <div>
                     <p className="font-medium text-sm">My Rides</p>
@@ -345,29 +479,65 @@ export default function HomePage({
       {!user && (
         <div className="px-4 mt-6">
           <div className="max-w-lg mx-auto">
-            <Card className="bg-coral-50 border-coral-200">
+            <Card 
+              className={!brandStyles.isCustom ? 'bg-coral-50 border-coral-200' : ''}
+              style={brandStyles.isCustom && brandColors ? {
+                backgroundColor: brandColors.accentLight,
+                borderColor: `${brandColors.accent}40`,
+              } : undefined}
+            >
               <CardContent className="p-4">
                 <h3 className="font-semibold text-navy-900 mb-3">How it works</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                    <div 
+                      className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ${!brandStyles.isCustom ? 'bg-coral-500' : ''}`}
+                      style={brandStyles.isCustom && brandColors ? { backgroundColor: brandColors.accent } : undefined}
+                    >
+                      1
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-navy-900">Find your ride</p>
-                      <p className="text-xs text-coral-500">Search for drivers going your way</p>
+                      <p 
+                        className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                        style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                      >
+                        Search for drivers going your way
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                    <div 
+                      className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ${!brandStyles.isCustom ? 'bg-coral-500' : ''}`}
+                      style={brandStyles.isCustom && brandColors ? { backgroundColor: brandColors.accent } : undefined}
+                    >
+                      2
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-navy-900">Book with 10% deposit</p>
-                      <p className="text-xs text-coral-500">Pay via Mobile Money to secure your seat</p>
+                      <p 
+                        className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                        style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                      >
+                        Pay via Mobile Money to secure your seat
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                    <div 
+                      className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ${!brandStyles.isCustom ? 'bg-coral-500' : ''}`}
+                      style={brandStyles.isCustom && brandColors ? { backgroundColor: brandColors.accent } : undefined}
+                    >
+                      3
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-navy-900">Travel and pay the rest</p>
-                      <p className="text-xs text-coral-500">Pay 90% in cash to your driver after the ride</p>
+                      <p 
+                        className={`text-xs ${!brandStyles.isCustom ? 'text-coral-500' : ''}`}
+                        style={brandStyles.isCustom && brandColors ? { color: brandColors.accent } : undefined}
+                      >
+                        Pay 90% in cash to your driver after the ride
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -381,7 +551,13 @@ export default function HomePage({
       {user && (
         <div className="px-4 mt-6">
           <div className="max-w-lg mx-auto">
-            <Card className="bg-coral-50 border-coral-200">
+            <Card 
+              className={!brandStyles.isCustom ? 'bg-coral-50 border-coral-200' : ''}
+              style={brandStyles.isCustom && brandColors ? {
+                backgroundColor: brandColors.accentLight,
+                borderColor: `${brandColors.accent}40`,
+              } : undefined}
+            >
               <CardContent className="p-4">
                 <h3 className="font-medium text-navy-900 mb-2">Payment reminder</h3>
                 <p className="text-sm text-navy-800">
