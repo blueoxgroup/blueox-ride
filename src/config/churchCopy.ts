@@ -1,5 +1,5 @@
 // Church-specific landing page copy configuration
-// Includes brand colors and hero text customization
+// Includes brand colors, logos, and hero text customization
 
 export interface ChurchBrandColors {
   // Primary brand color - used for hero background gradient
@@ -22,6 +22,8 @@ export interface ChurchCopy {
   loggedInPrompt?: string
   // Brand colors for theming
   brandColors: ChurchBrandColors
+  // Church logo URL (optional - displayed in hero section)
+  logoUrl?: string
 }
 
 // Default BlueOx brand colors (coral and navy)
@@ -37,11 +39,13 @@ export const defaultBrandColors: ChurchBrandColors = {
 export const churchCopyMap: Record<string, ChurchCopy> = {
   // Watoto Church - Navy blue with orange/gold accents
   // Based on their official branding: dark blue logo with warm accent colors
+  // "Celebrating Christ, Caring for Community" - Kampala, Uganda
   watoto: {
     slug: 'watoto',
     churchName: 'Watoto Church',
     heroHeadline: 'Ride together to Watoto Church',
     heroSubtext: 'Find fellow believers heading to service. Save money, build community.',
+    logoUrl: 'https://watotochurch.com/wp-content/uploads/2020/02/watotologob.png',
     brandColors: {
       primary: '#1E3A5F',       // Watoto Navy Blue
       primaryDark: '#142942',   // Darker navy
@@ -53,12 +57,15 @@ export const churchCopyMap: Record<string, ChurchCopy> = {
   },
 
   // Worship Harvest - Orange/amber with dark navy
+  // Led by Apostle Moses Mukisa - "Gospel, Discipleship, Mission"
   // Based on their website: warm orange tones, community-focused
   worshipharvest: {
     slug: 'worshipharvest',
     churchName: 'Worship Harvest',
     heroHeadline: 'Ride together to Worship Harvest',
     heroSubtext: 'Connect with church members going your way. Travel together, worship together.',
+    // Worship Harvest uses Next.js with embedded assets - no direct logo URL available
+    // Logo displays church name in stylized orange text
     brandColors: {
       primary: '#E87722',       // Worship Harvest Orange
       primaryDark: '#C65A0A',   // Darker orange
@@ -69,30 +76,34 @@ export const churchCopyMap: Record<string, ChurchCopy> = {
     },
   },
 
-  // Holy City Church (Entebbe) - Royal purple with gold
-  // Spiritual royalty theme with Professor Ronnie Makabai
+  // Holy City Church (Entebbe) - Green/teal with gold accents
+  // Led by Professor Ronnie Makabai - "The Paradise of God"
+  // Located at Lake Victoria Peninsula, Kawuku Bwerenga, Entebbe
   holycity: {
     slug: 'holycity',
     churchName: 'Holy City Church',
     heroHeadline: 'Share rides to Holy City Church',
     heroSubtext: 'Join other members heading to service. Affordable, trusted carpooling.',
+    // Bro Ronnie Ministries logo - green/teal theme matching their site
     brandColors: {
-      primary: '#5E3A7E',       // Royal Purple
-      primaryDark: '#422A59',   // Darker purple
+      primary: '#1B5E4B',       // Holy City Teal/Green
+      primaryDark: '#134236',   // Darker green
       accent: '#C9A227',        // Gold
-      accentLight: '#F9F4E3',   // Light gold cream
+      accentLight: '#F5F9F7',   // Light green tint
       heroText: '#ffffff',
-      heroSubtext: '#F9F4E3',
+      heroSubtext: '#E8F5E9',
     },
   },
 
   // Miracle Centre Cathedral - Royal blue with gold
-  // Based on their branding: blue and gold, Robert Kayanja Ministries
+  // Founded by Pastor Robert Kayanja - One of East Africa's largest churches
+  // Located in Rubaga Division, Kampala - seats 10,500
   miraclecenter: {
     slug: 'miraclecenter',
-    churchName: 'Miracle Center Cathedral',
-    heroHeadline: 'Get to Miracle Center together',
+    churchName: 'Miracle Centre Cathedral',
+    heroHeadline: 'Get to Miracle Centre together',
     heroSubtext: 'Find rides with fellow believers. Save on transport, grow in fellowship.',
+    logoUrl: 'https://images.squarespace-cdn.com/content/v1/61b8afd40030027b2b7b4629/a7484434-03f6-4ba5-bb20-245e5e63e66e/rk.png',
     brandColors: {
       primary: '#1E4D8C',       // Royal Blue
       primaryDark: '#153764',   // Darker blue
@@ -104,12 +115,14 @@ export const churchCopyMap: Record<string, ChurchCopy> = {
   },
 
   // Phaneroo Ministries - Maroon/burgundy with gold
-  // Based on their website aesthetics: deep maroon with gold highlights
+  // Led by Apostle Grace Lubega - "Make Manifest"
+  // Vision: Transform nations with the Word of God
   phaneroo: {
     slug: 'phaneroo',
     churchName: 'Phaneroo Ministries',
     heroHeadline: 'Ride together to Phaneroo',
     heroSubtext: 'Connect with others heading to the gathering. Share the journey, share the cost.',
+    logoUrl: 'https://phaneroo.org/wp-content/uploads/2018/02/Phaneroo_logo-2.png',
     brandColors: {
       primary: '#6B2D5B',       // Phaneroo Maroon/Burgundy
       primaryDark: '#4A1F3F',   // Darker burgundy

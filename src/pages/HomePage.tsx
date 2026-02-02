@@ -33,6 +33,8 @@ interface HomePageProps {
   // Optional brand colors for church theming
   brandColors?: ChurchBrandColors
   churchName?: string
+  // Optional church logo URL
+  churchLogoUrl?: string
 }
 
 export default function HomePage({
@@ -41,6 +43,7 @@ export default function HomePage({
   loggedInPrompt = 'Where are you heading today?',
   brandColors,
   churchName,
+  churchLogoUrl,
 }: HomePageProps = {}) {
   const { user, profile } = useAuth()
   const [searchOrigin, setSearchOrigin] = useState<Location | null>(null)
@@ -214,6 +217,39 @@ export default function HomePage({
               </Link>
             )}
           </div>
+
+          {/* Church Logo Banner - shown for church landing pages */}
+          {churchName && (
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3">
+                {churchLogoUrl ? (
+                  <img
+                    src={churchLogoUrl}
+                    alt={`${churchName} logo`}
+                    className="h-10 w-auto max-w-[140px] object-contain"
+                    onError={(e) => {
+                      // Hide the image if it fails to load
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div 
+                    className="text-sm font-semibold"
+                    style={{ color: brandColors?.accent || '#F5A623' }}
+                  >
+                    {churchName}
+                  </div>
+                )}
+                <div className="h-6 w-px bg-white/30" />
+                <span 
+                  className="text-xs"
+                  style={{ color: brandColors?.heroSubtext || '#ffe0e0' }}
+                >
+                  Official Partner
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Hero Message */}
           <div className="text-center mb-6">

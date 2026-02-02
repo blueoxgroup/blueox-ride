@@ -47,6 +47,7 @@ export default function ChurchLandingPage() {
         loggedInPrompt={copy.loggedInPrompt}
         brandColors={isKnownChurch ? copy.brandColors : undefined}
         churchName={isKnownChurch ? copy.churchName : undefined}
+        churchLogoUrl={isKnownChurch ? copy.logoUrl : undefined}
       />
     </>
   )
