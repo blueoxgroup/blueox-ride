@@ -64,8 +64,7 @@ export const churchCopyMap: Record<string, ChurchCopy> = {
     churchName: 'Worship Harvest',
     heroHeadline: 'Ride together to Worship Harvest',
     heroSubtext: 'Connect with church members going your way. Travel together, worship together.',
-    // Worship Harvest uses Next.js with embedded assets - no direct logo URL available
-    // Logo displays church name in stylized orange text
+    logoUrl: '/assets/worship-harvest-logo.png',
     brandColors: {
       primary: '#E87722',       // Worship Harvest Orange
       primaryDark: '#C65A0A',   // Darker orange
